@@ -10,6 +10,7 @@ import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.http.HttpMethod
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
+import kotlinx.coroutines.channels.consumeEach
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -35,8 +36,8 @@ class DeviceWebSocketImpl(private val httpClient: HttpClient) : DeviceWebSocket 
                     send(Frame.Text(subscriptionMessage))
                 }
 
-                while (true) {
-                    when (val frame = incoming.receive()) {
+                incoming.consumeEach { frame ->
+                    when (frame) {
                         is Frame.Text -> onDataReceived(frame.readText())
                         is Frame.Binary,
                         is Frame.Close,

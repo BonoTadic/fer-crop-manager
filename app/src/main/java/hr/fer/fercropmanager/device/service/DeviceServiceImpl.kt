@@ -91,6 +91,7 @@ class DeviceServiceImpl(
             val deviceDataDto = Json.decodeFromString<DeviceDataDto>(data)
             val entityId = deviceWebSocket.retrieveDeviceId(deviceDataDto.subscriptionId)
             val deviceName = deviceIdNameMap[entityId]
+            // TODO Update devices and device data separately
             deviceName?.let { updateDevicesList(deviceDataDto.toDeviceValues(), entityId, it) }
         } catch (e: Exception) {
             e.fillInStackTrace()
