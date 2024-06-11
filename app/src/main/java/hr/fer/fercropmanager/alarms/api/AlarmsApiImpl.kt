@@ -37,6 +37,7 @@ class AlarmsApiImpl(private val httpClient: HttpClient) : AlarmsApi {
                     parameters.append("page", "0")
                     parameters.append("sortProperty", "createdTime")
                     parameters.append("sortOrder", "DESC")
+                    parameters.append("fetchOriginator", "true")
                 }
             }.body()
             Result.success(response)
