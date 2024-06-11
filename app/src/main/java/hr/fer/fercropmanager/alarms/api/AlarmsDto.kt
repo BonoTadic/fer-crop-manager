@@ -28,8 +28,8 @@ data class Data(
     val status: String,
     val tenantId: TenantId,
     val type: String,
-    val details: Details? = null,
     val originatorName: String? = null,
+    val details: Details? = null,
     val propagateRelationTypes: List<String>? = null,
 )
 
@@ -60,33 +60,23 @@ data class TenantId(
 @Serializable
 data class AlarmDto(
     val ackTs: Long,
-    val acknowledged: Boolean,
-    val assignTs: Long,
-    val assigneeId: AssigneeId,
     val clearTs: Long,
-    val cleared: Boolean,
     val createdTime: Long,
     val customerId: CustomerId,
-    val details: Details,
     val endTs: Long,
     val id: Id,
     val name: String,
     val originator: Originator,
     val propagate: Boolean,
-    val propagateRelationTypes: List<String>,
     val propagateToOwner: Boolean,
     val propagateToTenant: Boolean,
     val severity: String,
     val startTs: Long,
     val status: String,
     val tenantId: TenantId,
-    val type: String
-)
-
-@Serializable
-data class AssigneeId(
-    val entityType: String,
-    val id: String
+    val type: String,
+    val details: Details? = null,
+    val propagateRelationTypes: List<String>? = null,
 )
 
 @Serializable

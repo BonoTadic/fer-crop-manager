@@ -1,12 +1,20 @@
 package hr.fer.fercropmanager.alarms.service
 
+import hr.fer.fercropmanager.alarms.api.AlarmDto
 import hr.fer.fercropmanager.alarms.api.Data
-import hr.fer.fercropmanager.device.service.Device
 
-sealed interface AlarmsState {
+sealed interface AlarmsListState {
 
-    data object Empty : AlarmsState
-    data class Available(val alarms: List<Alarm>) : AlarmsState
+    data object Loading : AlarmsListState
+    data object Empty : AlarmsListState
+    data class Available(val alarms: List<Alarm>) : AlarmsListState
+}
+
+sealed interface AlarmState {
+
+    data object Loading : AlarmState
+    data object Error : AlarmState
+    data class Loaded(val alarm: Alarm, val isButtonLoading: Boolean = false) : AlarmState
 }
 
 data class Alarm(
@@ -18,9 +26,9 @@ data class Alarm(
     val status: AlarmStatus,
 )
 
-enum class AlarmType(val label: String) {
-    HighTemperature("High Temperature"),
-    HighHumidity("High Humidity");
+enum class AlarmType {
+    HighTemperature,
+    HighHumidity;
 
     companion object {
         fun getFromSerialName(serialName: String) = when (serialName) {
@@ -31,8 +39,8 @@ enum class AlarmType(val label: String) {
     }
 }
 
-enum class AlarmSeverity(val label: String) {
-    Critical("CRITICAL");
+enum class AlarmSeverity {
+    Critical;
 
     companion object {
         fun getFromSerialName(serialName: String) = when (serialName) {
@@ -42,11 +50,11 @@ enum class AlarmSeverity(val label: String) {
     }
 }
 
- enum class AlarmStatus(val label: String) {
-     ActiveUnack("ACTIVE_UNACK"),
-     ActiveAck("ACTIVE_ACK"),
-     ClearedUnack("CLEARED_UNACK"),
-     ClearedAck("CLEARED_ACK");
+ enum class AlarmStatus {
+     ActiveUnack,
+     ActiveAck,
+     ClearedUnack,
+     ClearedAck;
 
      companion object {
          fun getFromSerialName(serialName: String) = when (serialName) {
@@ -59,10 +67,19 @@ enum class AlarmSeverity(val label: String) {
      }
  }
 
-fun Data.toAlarm(devices: List<Device>) = Alarm(
+fun Data.toAlarm() = Alarm(
     id = id.id,
     name = name,
-    originatorName = devices.first { it.id == originator.id }.name,
+    originatorName = originatorName ?: "Unknown originator",
+    status = AlarmStatus.getFromSerialName(status),
+    severity = AlarmSeverity.getFromSerialName(severity),
+    type = AlarmType.getFromSerialName(type),
+)
+
+fun AlarmDto.toAlarm() = Alarm(
+    id = id.id,
+    name = name,
+    originatorName = "Unknown originator",
     status = AlarmStatus.getFromSerialName(status),
     severity = AlarmSeverity.getFromSerialName(severity),
     type = AlarmType.getFromSerialName(type),
