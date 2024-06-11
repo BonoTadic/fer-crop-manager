@@ -6,3 +6,4 @@ data class FillIndicatorData(
     val min: Float,
     val max: Float,
 )
+
