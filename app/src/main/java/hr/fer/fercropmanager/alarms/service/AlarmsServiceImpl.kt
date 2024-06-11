@@ -5,74 +5,110 @@ import hr.fer.fercropmanager.alarms.api.AlarmsDto
 import hr.fer.fercropmanager.alarms.persistence.AlarmsPersistence
 import hr.fer.fercropmanager.auth.service.AuthService
 import hr.fer.fercropmanager.auth.service.AuthState
-import hr.fer.fercropmanager.device.service.Device
-import hr.fer.fercropmanager.device.service.DeviceService
-import hr.fer.fercropmanager.device.service.DeviceState
-import hr.fer.fercropmanager.network.DEVICE_ENTITY_TYPE
+import hr.fer.fercropmanager.snackbar.service.SnackbarService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-private const val POLLING_DELAY = 3_000L
+private const val POLLING_DELAY = 10_000L
 
 class AlarmsServiceImpl(
     private val alarmsApi: AlarmsApi,
     private val authService: AuthService,
-    private val deviceService: DeviceService,
     private val alarmsPersistence: AlarmsPersistence,
+    private val snackbarService: SnackbarService,
 ) : AlarmsService {
 
     private val coroutineContext = Dispatchers.Main + SupervisorJob()
     private val scope = CoroutineScope(coroutineContext)
 
-    private var alarmsList = listOf<Alarm>()
-    private val alarmsIdSet = mutableSetOf<String>()
-
     init {
         scope.launch { startPollingAlarms() }
     }
 
-    override fun getAlarmsState() = alarmsPersistence.getCachedState()
+    private val isButtonLoadingFlow = MutableStateFlow(false)
+
+    override fun getAlarmsListState() = alarmsPersistence.getCachedAlarmsListState()
+
+    override fun getAlarmState() = combine(
+        alarmsPersistence.getCachedAlarmState(),
+        isButtonLoadingFlow,
+    ) { alarmState, isButtonLoading ->
+        when (alarmState) {
+            AlarmState.Error, AlarmState.Loading -> alarmState
+            is AlarmState.Loaded -> alarmState.withUpdatedLoadingState(isButtonLoading)
+        }
+    }
+
+    override suspend fun getAlarm(alarmId: String) {
+        refreshAlarm(alarmId = alarmId, showLoading = true)
+    }
+
+    override suspend fun acknowledgeAlarm(alarmId: String) {
+        val token = (authService.getAuthState().first() as AuthState.Success).token
+        alarmsApi.acknowledgeAlarm(token, alarmId).fold(
+            onSuccess = { fetchAlarms() },
+            onFailure = {
+                // TODO
+            },
+        )
+    }
+
+    override suspend fun clearAlarm(alarmId: String) {
+        isButtonLoadingFlow.value = true
+        val token = (authService.getAuthState().first() as AuthState.Success).token
+        alarmsApi.clearAlarm(token, alarmId).fold(
+            onSuccess = {
+                isButtonLoadingFlow.value = false
+                refreshAlarm(alarmId = alarmId, showLoading = false)
+                fetchAlarms()
+            },
+            onFailure = {
+                isButtonLoadingFlow.value = false
+                snackbarService.notifyUser("Failed to clear alarm. Please try again.")
+            },
+        )
+    }
 
     private suspend fun startPollingAlarms() {
         while (true) {
-            deviceService.getDeviceState().collectLatest { deviceState ->
-                when (deviceState) {
-                    is DeviceState.Loaded.Available -> fetchAlarms(deviceState.devices)
-                    DeviceState.Error,
-                    DeviceState.Initial,
-                    DeviceState.Loaded.Empty,
-                    DeviceState.Loading -> Unit
-                }
-            }
+            fetchAlarms()
             delay(POLLING_DELAY)
         }
     }
 
-    private suspend fun fetchAlarms(devices: List<Device>) {
-        if (devices.isNotEmpty()) {
-            val entityIdList = devices.map { it.id }
-            val token = (authService.getAuthState().first() as AuthState.Success).token
-            entityIdList.forEach { entityId ->
-                alarmsApi.getAlarms(token, DEVICE_ENTITY_TYPE, entityId).fold(
-                    onSuccess = { alarmsDto -> updateAlarmsList(alarmsDto, devices) },
-                    onFailure = {
-                        // TODO Show a snackbar
-                    },
-                )
-            }
+    private suspend fun refreshAlarm(alarmId: String, showLoading: Boolean) {
+        if (showLoading) alarmsPersistence.updateAlarmState(AlarmState.Loading)
+        val token = (authService.getAuthState().first() as AuthState.Success).token
+        alarmsApi.getAlarm(token, alarmId).fold(
+            onSuccess = { alarmsPersistence.updateAlarmState(AlarmState.Loaded(it.toAlarm())) },
+            onFailure = { alarmsPersistence.updateAlarmState(AlarmState.Error) },
+        )
+    }
+
+    private suspend fun fetchAlarms() {
+        val token = (authService.getAuthState().first() as AuthState.Success).token
+        alarmsApi.getAllAlarms(token).fold(
+            onSuccess = { alarmsDto -> updateAlarmsList(alarmsDto) },
+            onFailure = {
+                // TODO
+            },
+        )
+    }
+
+    private suspend fun updateAlarmsList(alarmsDto: AlarmsDto) {
+        if (alarmsDto.data.isEmpty()) {
+            alarmsPersistence.updateAlarmsListState(AlarmsListState.Empty)
+        } else {
+            alarmsPersistence.updateAlarmsListState(AlarmsListState.Available(alarmsDto.data.map { it.toAlarm() }))
         }
     }
 
-    private suspend fun updateAlarmsList(alarmsDto: AlarmsDto, devices: List<Device>) {
-        val uniqueNewAlarmsData = alarmsDto.data.filter { alarm -> alarm.id.id !in alarmsIdSet }
-        if (uniqueNewAlarmsData.isNotEmpty()) {
-            alarmsList = alarmsList + uniqueNewAlarmsData.map { data -> data.toAlarm(devices) }
-            alarmsPersistence.updateAlarmsState(AlarmsState.Available(alarmsList))
-        }
-    }
+    private fun AlarmState.Loaded.withUpdatedLoadingState(isLoading: Boolean) =
+        copy(isButtonLoading = isLoading)
 }

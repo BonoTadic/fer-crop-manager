@@ -5,9 +5,11 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
+import io.ktor.client.request.post
 import io.ktor.http.HttpHeaders
 
 private const val ALARM_URL = "api/alarm"
+private const val ALARMS_URL = "api/alarms"
 
 class AlarmsApiImpl(private val httpClient: HttpClient) : AlarmsApi {
 
@@ -24,9 +26,9 @@ class AlarmsApiImpl(private val httpClient: HttpClient) : AlarmsApi {
         }
     }
 
-    override suspend fun getAlarms(token: String, entityType: String, entityId: String): Result<AlarmsDto> {
+    override suspend fun getAllAlarms(token: String): Result<AlarmsDto> {
         return try {
-            val response: AlarmsDto = httpClient.get("$BASE_URL$ALARM_URL/$entityType/$entityId") {
+            val response: AlarmsDto = httpClient.get("$BASE_URL$ALARMS_URL") {
                 headers {
                     append(HttpHeaders.Authorization, "Bearer $token")
                 }
@@ -38,6 +40,32 @@ class AlarmsApiImpl(private val httpClient: HttpClient) : AlarmsApi {
                 }
             }.body()
             Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e.fillInStackTrace())
+        }
+    }
+
+    override suspend fun acknowledgeAlarm(token: String, alarmId: String): Result<Unit> {
+        return try {
+            httpClient.post("$BASE_URL$ALARM_URL/$alarmId/ack") {
+                headers {
+                    append(HttpHeaders.Authorization, "Bearer $token")
+                }
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e.fillInStackTrace())
+        }
+    }
+
+    override suspend fun clearAlarm(token: String, alarmId: String): Result<Unit> {
+        return try {
+            httpClient.post("$BASE_URL$ALARM_URL/$alarmId/clear") {
+                headers {
+                    append(HttpHeaders.Authorization, "Bearer $token")
+                }
+            }
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e.fillInStackTrace())
         }

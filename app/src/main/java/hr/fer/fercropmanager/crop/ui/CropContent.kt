@@ -19,9 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -45,13 +43,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import hr.fer.fercropmanager.R
-import hr.fer.fercropmanager.crop.usecase.Crop
-import hr.fer.fercropmanager.crop.usecase.CropState
 import hr.fer.fercropmanager.crop.ui.utils.WaterLevelIndicator
 import hr.fer.fercropmanager.crop.ui.utils.formatFloat
 import hr.fer.fercropmanager.crop.ui.utils.painter
-import hr.fer.fercropmanager.snackbar.ui.SnackbarHost
+import hr.fer.fercropmanager.crop.usecase.Crop
+import hr.fer.fercropmanager.crop.usecase.CropState
 import hr.fer.fercropmanager.snackbar.SnackbarManager
+import hr.fer.fercropmanager.snackbar.ui.SnackbarHost
+import hr.fer.fercropmanager.ui.common.ErrorContent
+import hr.fer.fercropmanager.ui.common.LoadingContent
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
@@ -61,6 +61,7 @@ import org.koin.compose.koinInject
 fun CropContent(
     viewModel: CropViewModel = koinViewModel(),
     snackbarManager: SnackbarManager = koinInject(),
+    onAlarmIconClick: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -89,7 +90,7 @@ fun CropContent(
         topBar = {
             CropHeader(
                 name = state.cropState.userData.name,
-                onNotificationsClick = { viewModel.onInteraction(CropInteraction.NotificationsClick) },
+                onAlarmsClick = onAlarmIconClick,
                 onSettingsClick = { viewModel.onInteraction(CropInteraction.SettingsClick) },
             )
         },
@@ -100,7 +101,7 @@ fun CropContent(
                 .fillMaxSize(),
         ) {
             when (val cropState = state.cropState) {
-                is CropState.Error -> ErrorScreen(onRetry = { viewModel.onInteraction(CropInteraction.RetryClick) })
+                is CropState.Error -> ErrorContent(onRetry = { viewModel.onInteraction(CropInteraction.RetryClick) })
                 is CropState.Loaded -> LoadedContent(
                     state = cropState,
                     selectedIndex = state.selectedIndex,
@@ -127,7 +128,7 @@ private fun LoadedContent(
             onStartWateringClick = onStartWateringClick,
         )
         is CropState.Loaded.Empty -> EmptyContent()
-        is CropState.Loaded.Loading -> LoadingScreen()
+        is CropState.Loaded.Loading -> LoadingContent()
     }
 }
 
@@ -321,14 +322,14 @@ private fun CropDetails(crop: Crop, isShortcutLoading: Boolean, onStartWateringC
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CropHeader(name: String, onNotificationsClick: () -> Unit, onSettingsClick: () -> Unit) {
+fun CropHeader(name: String, onAlarmsClick: () -> Unit, onSettingsClick: () -> Unit) {
     TopAppBar(
         title = { Text(text = "Welcome $name!") },
         actions = {
             Icon(
-                modifier = Modifier.clickable(onClick = onNotificationsClick),
+                modifier = Modifier.clickable(onClick = onAlarmsClick),
                 imageVector = Icons.Default.Notifications,
-                contentDescription = "Notifications",
+                contentDescription = "Alarms",
             )
             Icon(
                 modifier = Modifier
@@ -354,32 +355,5 @@ private fun EmptyContent() {
             text = "You have no crops at the moment. Contact support to help you create one!",
             textAlign = TextAlign.Center,
         )
-    }
-}
-
-@Composable
-private fun LoadingScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun ErrorScreen(onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(text = "Something went wrong. Please try again.")
-        Button(
-            modifier = Modifier.padding(vertical = 32.dp),
-            onClick = onRetry,
-        ) {
-            Text(text = "Retry")
-        }
     }
 }
