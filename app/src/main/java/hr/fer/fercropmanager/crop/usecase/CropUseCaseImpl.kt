@@ -16,18 +16,19 @@ class CropUseCaseImpl(
     override fun getCropStateFlow() = combine(
         authService.getAuthState().filterIsInstance<AuthState.Success>().map { authState -> authState.toUserData() },
         deviceService.getDeviceState(),
-    ) { userData, deviceState ->
+        deviceService.getDeviceValues(),
+    ) { userData, deviceState, deviceValuesMap ->
         when (deviceState) {
             DeviceState.Initial, DeviceState.Loading -> CropState.Loaded.Loading(userData)
             DeviceState.Error -> CropState.Error(userData)
             DeviceState.Loaded.Empty -> CropState.Loaded.Empty(userData)
-            is DeviceState.Loaded.Available -> {
-                CropState.Loaded.Available(
-                    userData = userData,
-                    isShortcutLoading = deviceState.isShortcutLoading,
-                    crops = deviceState.devices.map { device -> device.toCrop() },
-                )
-            }
+            is DeviceState.Loaded.Available -> CropState.Loaded.Available(
+                userData = userData,
+                isShortcutLoading = deviceState.isShortcutLoading,
+                crops = deviceState.devices
+                    .filter { device -> device.type != "default" }
+                    .map { device -> device.toCrop(deviceValuesMap[device.id]) }
+            )
         }
     }
 
@@ -36,6 +37,6 @@ class CropUseCaseImpl(
     }
 
     override suspend fun refreshCrops() {
-        deviceService.refreshDeviceState()
+        deviceService.refreshDevices()
     }
 }

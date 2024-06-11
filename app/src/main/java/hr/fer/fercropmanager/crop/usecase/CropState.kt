@@ -2,6 +2,7 @@ package hr.fer.fercropmanager.crop.usecase
 
 import hr.fer.fercropmanager.auth.service.AuthState
 import hr.fer.fercropmanager.device.service.Device
+import hr.fer.fercropmanager.device.service.DeviceValues
 
 sealed interface CropState {
 
@@ -45,12 +46,12 @@ enum class Plant {
 
 fun AuthState.Success.toUserData() = UserData(name = name, email = email)
 
-fun Device.toCrop() = Crop(
+fun Device.toCrop(deviceValues: DeviceValues?) = Crop(
     id = id,
     cropName = name,
-    soilMoisture = moisture,
-    temperature = temperature,
-    humidity = humidity,
+    soilMoisture = deviceValues?.moisture,
+    temperature = deviceValues?.temperature,
+    humidity = deviceValues?.humidity,
     wind = Wind(
         direction = WindDirection.East,
         speed = 6f,
