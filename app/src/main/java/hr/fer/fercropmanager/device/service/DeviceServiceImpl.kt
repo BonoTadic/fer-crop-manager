@@ -4,9 +4,8 @@ import hr.fer.fercropmanager.auth.service.AuthService
 import hr.fer.fercropmanager.auth.service.AuthState
 import hr.fer.fercropmanager.device.api.DeviceApi
 import hr.fer.fercropmanager.device.api.DeviceDataDto
-import hr.fer.fercropmanager.device.api.DeviceValues
-import hr.fer.fercropmanager.device.api.toDeviceValues
 import hr.fer.fercropmanager.device.persistence.DevicePersistence
+import hr.fer.fercropmanager.device.persistence.DeviceValuesPersistence
 import hr.fer.fercropmanager.device.websocket.DeviceWebSocket
 import hr.fer.fercropmanager.snackbar.service.SnackbarService
 import kotlinx.coroutines.CoroutineScope
@@ -18,33 +17,40 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
+private const val DEFAULT_TYPE = "default"
+
 class DeviceServiceImpl(
     private val deviceApi: DeviceApi,
     private val deviceWebSocket: DeviceWebSocket,
     private val authService: AuthService,
     private val snackbarService: SnackbarService,
     private val devicePersistence: DevicePersistence,
+    private val deviceValuesPersistence: DeviceValuesPersistence,
 ) : DeviceService {
 
     private val coroutineContext = Dispatchers.Main + SupervisorJob()
     private val scope = CoroutineScope(coroutineContext)
 
-    private var devicesList = listOf<Device>()
+    private val deviceIdNameMap = mutableMapOf<String, String>()
     private val isShortcutLoadingFlow = MutableStateFlow(false)
 
+    private var deviceValuesMap = mapOf<String, DeviceValues>()
+
     init {
-        scope.launch { initialiseSocketConnection() }
+        scope.launch { fetchDevices() }
     }
 
     override fun getDeviceState() = combine(
-        devicePersistence.getCachedState(),
+        devicePersistence.getCachedDeviceState(),
         isShortcutLoadingFlow,
     ) { deviceState, isShortcutLoading ->
         deviceState.withUpdatedShortcutLoadingState(isShortcutLoading)
     }
 
-    override suspend fun refreshDeviceState() {
-        initialiseSocketConnection()
+    override fun getDeviceValues() = deviceValuesPersistence.getCachedDeviceValues()
+
+    override suspend fun refreshDevices() {
+        fetchDevices()
     }
 
     override suspend fun startActuation(targetValue: String) {
@@ -63,56 +69,47 @@ class DeviceServiceImpl(
         )
     }
 
-    private suspend fun initialiseSocketConnection() {
+    private suspend fun fetchDevices() {
         devicePersistence.updateDeviceState(DeviceState.Loading)
-        val deviceIdNameMap = mutableMapOf<String, String>()
         val token = (authService.getAuthState().first() as AuthState.Success).token
         val customerId = (authService.getAuthState().first() as AuthState.Success).customerId
         deviceApi.getDevices(token, customerId).fold(
             onSuccess = { deviceDto ->
-                deviceDto.data.forEach { device -> deviceIdNameMap[device.id.id] = device.name }
+                val devices = deviceDto.data.map { it.toDevice() }
+                if (devices.isNotEmpty()) {
+                    val sensors = devices.filter { it.type != DEFAULT_TYPE }
+                    sensors.forEach { sensor -> deviceIdNameMap[sensor.id] = sensor.name }
+                    devicePersistence.updateDeviceState(DeviceState.Loaded.Available(devices))
+                    initialiseSocketConnection(token)
+                } else {
+                    devicePersistence.updateDeviceState(DeviceState.Loaded.Empty)
+                }
             },
             onFailure = { devicePersistence.updateDeviceState(DeviceState.Error) },
         )
-        if (deviceIdNameMap.isNotEmpty()) {
-            deviceWebSocket.connectWebSocket(
-                token = token,
-                entityIdList = deviceIdNameMap.keys.toList(),
-                onDataReceived = { scope.launch { handleReceivedData(it, deviceIdNameMap) } },
-            )
-        } else {
-            devicePersistence.updateDeviceState(DeviceState.Loaded.Empty)
-        }
     }
 
-    private suspend fun handleReceivedData(data: String?, deviceIdNameMap: MutableMap<String, String>) {
+    private suspend fun initialiseSocketConnection(token: String) {
+        deviceWebSocket.connectWebSocket(
+            token = token,
+            entityIdList = deviceIdNameMap.keys.toList(),
+            onDataReceived = { scope.launch { handleReceivedData(it) } },
+        )
+    }
+
+    private suspend fun handleReceivedData(data: String?) {
         if (data == null) return
         try {
             val deviceDataDto = Json.decodeFromString<DeviceDataDto>(data)
             val entityId = deviceWebSocket.retrieveDeviceId(deviceDataDto.subscriptionId)
-            val deviceName = deviceIdNameMap[entityId]
-            // TODO Update devices and device data separately
-            deviceName?.let { updateDevicesList(deviceDataDto.toDeviceValues(), entityId, it) }
+            val updatedDeviceValuesMap = deviceValuesMap.toMutableMap().apply {
+                put(entityId, deviceDataDto.toDeviceValues())
+            }.toMutableMap()
+            deviceValuesMap = updatedDeviceValuesMap
+            deviceValuesPersistence.updateDeviceValues(deviceValuesMap)
         } catch (e: Exception) {
             e.fillInStackTrace()
         }
-    }
-
-    private suspend fun updateDevicesList(deviceValues: DeviceValues, entityId: String, deviceName: String) {
-        val currentDevice = Device(
-            id = entityId,
-            name = deviceName,
-            humidity = deviceValues.humidity,
-            temperature = deviceValues.temperature,
-            moisture = deviceValues.moisture,
-            isWateringInProgress = deviceValues.isWateringInProgress,
-        )
-        val updatedList = devicesList.toMutableList().apply {
-            val index = devicesList.indexOfFirst { device -> device.name == deviceName }
-            if (index >= 0) set(index, currentDevice) else add(currentDevice)
-        }.sortedBy { it.name }
-        devicesList = updatedList
-        devicePersistence.updateDeviceState(DeviceState.Loaded.Available(updatedList))
     }
 
     private fun DeviceState.withUpdatedShortcutLoadingState(isLoading: Boolean) = when (this) {

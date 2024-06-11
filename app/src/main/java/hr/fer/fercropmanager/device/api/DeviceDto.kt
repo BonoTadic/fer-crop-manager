@@ -2,8 +2,6 @@ package hr.fer.fercropmanager.device.api
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonPrimitive
 
 @Serializable
 data class DeviceDto(
@@ -97,20 +95,3 @@ data class LatestValuesDto(
     val moisture: Long? = null,
     val isWateringInProgress: Boolean = false,
 )
-
-data class DeviceValues(
-    val humidity: Float?,
-    val temperature: Float?,
-    val moisture: Float?,
-    val isWateringInProgress: Boolean,
-)
-
-fun DeviceDataDto.toDeviceValues() = DeviceValues(
-    humidity = data.humidity.floatValue,
-    temperature = data.temperature.floatValue,
-    moisture = data.moisture.floatValue,
-    isWateringInProgress = data.isWateringInProgress,
-)
-
-private val List<List<JsonElement>>?.floatValue: Float?
-    get() = this?.firstOrNull()?.getOrNull(1)?.jsonPrimitive?.contentOrNull?.toFloat()

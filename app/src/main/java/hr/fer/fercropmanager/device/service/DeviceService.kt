@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 interface DeviceService {
 
     fun getDeviceState(): Flow<DeviceState>
-    suspend fun refreshDeviceState()
+    fun getDeviceValues(): Flow<Map<String, DeviceValues>>
+    suspend fun refreshDevices()
     suspend fun startActuation(targetValue: String)
 }

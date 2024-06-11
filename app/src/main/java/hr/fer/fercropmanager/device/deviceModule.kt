@@ -4,6 +4,8 @@ import hr.fer.fercropmanager.device.api.DeviceApi
 import hr.fer.fercropmanager.device.api.DeviceApiImpl
 import hr.fer.fercropmanager.device.persistence.DevicePersistence
 import hr.fer.fercropmanager.device.persistence.DevicePersistenceImpl
+import hr.fer.fercropmanager.device.persistence.DeviceValuesPersistence
+import hr.fer.fercropmanager.device.persistence.DeviceValuesPersistenceImpl
 import hr.fer.fercropmanager.device.service.DeviceService
 import hr.fer.fercropmanager.device.service.DeviceServiceImpl
 import hr.fer.fercropmanager.device.websocket.DeviceWebSocket
@@ -17,4 +19,5 @@ val deviceModule = module {
     singleOf(::DeviceWebSocketImpl) bind DeviceWebSocket::class
     singleOf(::DeviceServiceImpl) bind DeviceService::class
     singleOf(::DevicePersistenceImpl) bind DevicePersistence::class
+    singleOf(::DeviceValuesPersistenceImpl) bind DeviceValuesPersistence::class
 }
