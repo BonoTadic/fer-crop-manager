@@ -15,8 +15,8 @@ sealed interface DeviceState {
 data class Device(
     val id: String,
     val name: String,
-    val temperature: Float,
-    val humidity: Float,
-    val moisture: Float,
+    val temperature: Float?,
+    val humidity: Float?,
+    val moisture: Float?,
     val isWateringInProgress: Boolean,
 )

@@ -183,7 +183,10 @@ private fun CropsTabRowContent(
                 }
             }
         }
-        HorizontalPager(state = pagerState) { pageIndex ->
+        HorizontalPager(
+            state = pagerState,
+            verticalAlignment = Alignment.Top,
+        ) { pageIndex ->
             CropDetails(
                 crop = state.crops[pageIndex],
                 isShortcutLoading = state.isShortcutLoading,
@@ -236,62 +239,68 @@ private fun CropDetails(crop: Crop, isShortcutLoading: Boolean, onStartWateringC
                 }
             }
         }
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-        ) {
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
-                Text(
-                    modifier = Modifier.padding(bottom = 16.dp),
-                    text = "Soil moisture: ${crop.soilMoisture.toInt()}%",
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                WaterLevelIndicator(
-                    currentValue = crop.soilMoisture.toInt(),
-                    modifier = Modifier.fillMaxWidth(),
-                    isLoading = isShortcutLoading,
-                    isWateringInProgress = crop.isWateringInProgress,
-                    onStartWateringClick = onStartWateringClick,
-                )
+        crop.soilMoisture?.let { moisture ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
+                    Text(
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        text = "Soil moisture: ${moisture.toInt()}%",
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                    WaterLevelIndicator(
+                        currentValue = moisture.toInt(),
+                        modifier = Modifier.fillMaxWidth(),
+                        isLoading = isShortcutLoading,
+                        isWateringInProgress = crop.isWateringInProgress,
+                        onStartWateringClick = onStartWateringClick,
+                    )
+                }
             }
         }
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-        ) {
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
-                Text(
-                    text = "Temperature: ${crop.temperature.formatFloat()}°C",
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                val fillIndicatorData = FillIndicatorData(
-                    unit = "°C",
-                    current = crop.temperature,
-                    min = 8.0f,
-                    max = 35.0f
-                )
-                FillIndicator(fillIndicatorData = fillIndicatorData)
+        crop.temperature?.let { temperature ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
+                    Text(
+                        text = "Temperature: ${temperature.formatFloat()}°C",
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                    val fillIndicatorData = FillIndicatorData(
+                        unit = "°C",
+                        current = temperature,
+                        min = 8.0f,
+                        max = 35.0f
+                    )
+                    FillIndicator(fillIndicatorData = fillIndicatorData)
+                }
             }
         }
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-        ) {
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
-                Text(
-                    text = "Humidity: ${crop.humidity.formatFloat()}%",
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                val fillIndicatorData = FillIndicatorData(
-                    unit = "%",
-                    current = crop.humidity,
-                    min = 0.0f,
-                    max = 99.0f
-                )
-                FillIndicator(fillIndicatorData = fillIndicatorData)
+        crop.humidity?.let { humidity ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
+                    Text(
+                        text = "Humidity: ${humidity.formatFloat()}%",
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                    val fillIndicatorData = FillIndicatorData(
+                        unit = "%",
+                        current = humidity,
+                        min = 0.0f,
+                        max = 99.0f
+                    )
+                    FillIndicator(fillIndicatorData = fillIndicatorData)
+                }
             }
         }
         Card(
