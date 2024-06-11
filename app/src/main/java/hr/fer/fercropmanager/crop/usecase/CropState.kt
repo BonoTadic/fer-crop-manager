@@ -23,9 +23,9 @@ sealed interface CropState {
 data class Crop(
     val id: String,
     val cropName: String,
-    val soilMoisture: Float,
-    val temperature: Float,
-    val humidity: Float,
+    val soilMoisture: Float?,
+    val temperature: Float?,
+    val humidity: Float?,
     val wind: Wind,
     val isWateringInProgress: Boolean,
     val plants: List<Plant>,

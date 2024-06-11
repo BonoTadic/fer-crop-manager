@@ -84,33 +84,33 @@ data class DeviceDataDto(
 
 @Serializable
 data class DeviceValuesDto(
-    val humidity: List<List<JsonElement>>,
-    val temperature: List<List<JsonElement>>,
+    val humidity: List<List<JsonElement>>? = null,
+    val temperature: List<List<JsonElement>>? = null,
     val moisture: List<List<JsonElement>>? = null,
     val isWateringInProgress: Boolean = false,
 )
 
 @Serializable
 data class LatestValuesDto(
-    val humidity: Long,
-    val temperature: Long,
-    val moisture: Long = 0L,
+    val humidity: Long? = null,
+    val temperature: Long? = null,
+    val moisture: Long? = null,
     val isWateringInProgress: Boolean = false,
 )
 
 data class DeviceValues(
-    val humidity: Float,
-    val temperature: Float,
-    val moisture: Float,
+    val humidity: Float?,
+    val temperature: Float?,
+    val moisture: Float?,
     val isWateringInProgress: Boolean,
 )
 
 fun DeviceDataDto.toDeviceValues() = DeviceValues(
     humidity = data.humidity.floatValue,
     temperature = data.temperature.floatValue,
-    moisture = 17f,
+    moisture = data.moisture.floatValue,
     isWateringInProgress = data.isWateringInProgress,
 )
 
-private val List<List<JsonElement>>.floatValue: Float
-    get() = firstOrNull()?.getOrNull(1)?.jsonPrimitive?.contentOrNull?.toFloat() ?: 0.0f
+private val List<List<JsonElement>>?.floatValue: Float?
+    get() = this?.firstOrNull()?.getOrNull(1)?.jsonPrimitive?.contentOrNull?.toFloat()
