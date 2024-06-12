@@ -2,49 +2,88 @@ package hr.fer.fercropmanager.crop.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import hr.fer.fercropmanager.crop.ui.plants.service.PlantsService
+import hr.fer.fercropmanager.crop.ui.utils.combine
 import hr.fer.fercropmanager.crop.usecase.CropUseCase
+import hr.fer.fercropmanager.device.service.DeviceService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class CropViewModel(private val cropUseCase: CropUseCase) : ViewModel() {
+class CropViewModel(
+    private val cropUseCase: CropUseCase,
+    private val deviceService: DeviceService,
+    private val plantsService: PlantsService,
+) : ViewModel() {
 
     private val selectedIndexFlow = MutableStateFlow(0)
-    private val isBottomSheetVisibleFlow = MutableStateFlow(false)
-    private val targetValueFlow = MutableStateFlow("")
+
+    private val isSprinklerBottomSheetVisibleFlow = MutableStateFlow(false)
+
+    private val isLedBottomSheetVisibleFlow = MutableStateFlow(false)
+    private val isLedEnabledFlow = MutableStateFlow(false)
+
+    private val isPlantsDialogVisibleFlow = MutableStateFlow(false)
 
     val state = combine(
         selectedIndexFlow,
         cropUseCase.getCropStateFlow(),
-        isBottomSheetVisibleFlow,
-        targetValueFlow,
-    ) { selectedIndex, cropState, isBottomSheetVisible, targetValue ->
-        CropViewState(selectedIndex, cropState, isBottomSheetVisible, targetValue)
+        isSprinklerBottomSheetVisibleFlow,
+        isLedBottomSheetVisibleFlow,
+        isLedEnabledFlow,
+        isPlantsDialogVisibleFlow,
+    ) { selectedIndex, cropState, isSprinklerBottomSheetVisible,
+        isLedBottomSheetVisible, isLedEnabled, isPlantsDialogVisible ->
+        CropViewState(
+            selectedIndex = selectedIndex,
+            cropState = cropState,
+            isSprinkleBottomSheetVisible = isSprinklerBottomSheetVisible,
+            isLedBottomSheetVisible = isLedBottomSheetVisible,
+            isLedEnabled = isLedEnabled,
+            isPlantsDialogVisible = isPlantsDialogVisible,
+        )
     }.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = CropViewState())
 
     fun onInteraction(interaction: CropInteraction) {
         when (interaction) {
             is CropInteraction.TabChange -> viewModelScope.launch {
                 selectedIndexFlow.value = interaction.index
+                deviceService.setSelectedDeviceId(interaction.id)
             }
             CropInteraction.RetryClick -> viewModelScope.launch { cropUseCase.refreshCrops() }
             CropInteraction.SettingsClick -> {
                 // TODO Implement Settings screen
             }
-            CropInteraction.StartWateringClick -> isBottomSheetVisibleFlow.value = true
+            CropInteraction.SprinklerClick -> isSprinklerBottomSheetVisibleFlow.value = true
             CropInteraction.HideBottomSheet -> {
-                isBottomSheetVisibleFlow.value = false
-                targetValueFlow.value = ""
+                isSprinklerBottomSheetVisibleFlow.value = false
+                isLedBottomSheetVisibleFlow.value = false
             }
-            is CropInteraction.ActivateSprinklers -> {
-                isBottomSheetVisibleFlow.value = false
-                viewModelScope.launch { cropUseCase.activateSprinklers(targetValueFlow.value) }
-                targetValueFlow.value = ""
+            is CropInteraction.ActivateSprinkler -> {
+                isSprinklerBottomSheetVisibleFlow.value = false
+                viewModelScope.launch { cropUseCase.activateSprinkler() }
             }
-            is CropInteraction.TargetValueChange -> {
-                targetValueFlow.value = interaction.targetValue
+            CropInteraction.LightButtonClick -> {
+                isLedBottomSheetVisibleFlow.value = true
+            }
+            CropInteraction.LedStateChangeConfirm -> {
+                isLedBottomSheetVisibleFlow.value = false
+                val targetValue = if (isLedEnabledFlow.value) 1 else 0
+                viewModelScope.launch { cropUseCase.setLedStatus(targetValue) }
+            }
+            is CropInteraction.OnCheckedChange -> {
+                isLedEnabledFlow.value = interaction.isChecked
+            }
+            CropInteraction.PlantsSettingsClick -> {
+                isPlantsDialogVisibleFlow.value = true
+            }
+            CropInteraction.PlantsDialogClose -> {
+                isPlantsDialogVisibleFlow.value = false
+            }
+            is CropInteraction.PlantsDialogConfirm -> viewModelScope.launch {
+                plantsService.updatePlants(interaction.plants)
+                isPlantsDialogVisibleFlow.value = false
             }
         }
     }

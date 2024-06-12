@@ -1,4 +1,4 @@
-package hr.fer.fercropmanager.crop.ui
+package hr.fer.fercropmanager.crop.ui.utils
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -24,7 +24,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import hr.fer.fercropmanager.crop.ui.utils.formatFloat
+import hr.fer.fercropmanager.crop.ui.FillIndicatorData
 
 @Composable
 fun FillIndicator(
@@ -84,7 +84,7 @@ private fun FillBar(
             drawRoundRect(
                 color = Color.Green,
                 topLeft = Offset(0f, 0f),
-                size = Size(barWidth.toPx() * position, barHeight.toPx()),
+                size = Size((barWidth.toPx() * position).coerceAtMost(barWidth.toPx()), barHeight.toPx()),
                 cornerRadius = CornerRadius(12.dp.toPx(), 12.dp.toPx()),
             )
         }

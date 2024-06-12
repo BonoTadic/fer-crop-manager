@@ -1,6 +1,7 @@
 package hr.fer.fercropmanager.crop.usecase
 
 import hr.fer.fercropmanager.auth.service.AuthState
+import hr.fer.fercropmanager.crop.ui.plants.Plant
 import hr.fer.fercropmanager.device.service.Device
 import hr.fer.fercropmanager.device.service.DeviceValues
 
@@ -40,13 +41,9 @@ enum class WindDirection {
     North, South, East, West,
 }
 
-enum class Plant {
-    Corn, Wheat, Sunflower, Apple, Pear, Orange, Cherry,
-}
-
 fun AuthState.Success.toUserData() = UserData(name = name, email = email)
 
-fun Device.toCrop(deviceValues: DeviceValues?, isWateringInProgress: Boolean) = Crop(
+fun Device.toCrop(deviceValues: DeviceValues?, isWateringInProgress: Boolean, plantsMap: Map<String, List<Plant>>) = Crop(
     id = id,
     cropName = name,
     soilMoisture = deviceValues?.moisture,
@@ -57,5 +54,5 @@ fun Device.toCrop(deviceValues: DeviceValues?, isWateringInProgress: Boolean) = 
         speed = 6f,
     ),
     isWateringInProgress = isWateringInProgress,
-    plants = listOf(Plant.Corn, Plant.Sunflower, Plant.Pear, Plant.Cherry),
+    plants = plantsMap[id] ?: emptyList(),
 )

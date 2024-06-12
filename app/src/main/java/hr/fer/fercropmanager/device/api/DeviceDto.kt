@@ -98,3 +98,6 @@ data class LatestValuesDto(
 
 @Serializable
 data class SprayRpcRequest(val method: String)
+
+@Serializable
+data class LedRpcRequest(val method: String, val params: Int)

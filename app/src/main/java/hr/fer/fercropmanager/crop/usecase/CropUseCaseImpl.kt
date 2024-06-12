@@ -2,6 +2,7 @@ package hr.fer.fercropmanager.crop.usecase
 
 import hr.fer.fercropmanager.auth.service.AuthService
 import hr.fer.fercropmanager.auth.service.AuthState
+import hr.fer.fercropmanager.crop.ui.plants.service.PlantsService
 import hr.fer.fercropmanager.device.service.DeviceService
 import hr.fer.fercropmanager.device.service.DeviceState
 import hr.fer.fercropmanager.device.service.RpcStatus
@@ -25,6 +26,7 @@ class CropUseCaseImpl(
     private val authService: AuthService,
     private val deviceService: DeviceService,
     private val snackbarService: SnackbarService,
+    plantsService: PlantsService,
 ) : CropUseCase {
 
     private val coroutineContext = Dispatchers.Main + SupervisorJob()
@@ -37,11 +39,12 @@ class CropUseCaseImpl(
     private val cropsFlow = combine(
         deviceService.getDeviceState().filterIsInstance<DeviceState.Loaded.Available>(),
         deviceService.getDeviceValues(),
+        plantsService.getPlants(),
         isWateringInProgressFlow,
-    ) { deviceState, deviceValues, isWateringInProgress ->
+    ) { deviceState, deviceValues, plantsMap, isWateringInProgress ->
         deviceState.devices
             .filter { it.type == MOISTURE_SENSOR_TYPE || it.type == TEMP_HUMIDITY_SENSOR_TYPE }
-            .map { device -> device.toCrop(deviceValues[device.id], isWateringInProgress) }
+            .map { device -> device.toCrop(deviceValues[device.id], isWateringInProgress, plantsMap) }
     }
 
     override fun getCropStateFlow() = combine(
@@ -62,17 +65,23 @@ class CropUseCaseImpl(
         }
     }
 
-    override suspend fun activateSprinklers(targetValue: String) {
+    override suspend fun activateSprinkler() {
         deviceService.activateSprinkler(
-            targetValue = targetValue,
-            onStatusChange = { status ->
-                scope.launch { handleSprinklerRpcResponse(status) }
-            }
+            onStatusChange = { status -> scope.launch { handleSprinklerRpcResponse(status) } }
         )
     }
 
     override suspend fun refreshCrops() {
         deviceService.refreshDevices()
+    }
+
+    override suspend fun setLedStatus(targetValue: Int) {
+        deviceService.setLedStatus(
+            targetValue = targetValue,
+            onStatusChange = {
+                // TODO Handle UI change
+            },
+        )
     }
 
     private suspend fun handleSprinklerRpcResponse(rpcStatus: RpcStatus) {
@@ -87,7 +96,7 @@ class CropUseCaseImpl(
             RpcStatus.Success -> {
                 isShortcutLoadingFlow.value = false
                 isWateringInProgressFlow.value = true
-                snackbarService.notifyUser(message = "Watering started successfully!")
+                snackbarService.notifyUser(message = "Sprinkler activated!")
                 delay(SPRINKLER_DURATION)
                 isWateringInProgressFlow.value = false
             }
