@@ -76,7 +76,7 @@ fun CropContent(
         onConfirm = {
             scope.launch {
                 sheetState.hide()
-            }.invokeOnCompletion { viewModel.onInteraction(CropInteraction.ConfirmWatering) }
+            }.invokeOnCompletion { viewModel.onInteraction(CropInteraction.ActivateSprinklers) }
         },
         onCancel = {
             scope.launch {
@@ -143,10 +143,6 @@ private fun CropsTabRowContent(
     val tabs = state.crops.map { crop -> crop.cropName }
     val pagerState = rememberPagerState(initialPage = selectedIndex, pageCount = { tabs.size })
     val selectedTabIndex by remember { derivedStateOf { pagerState.currentPage } }
-
-    LaunchedEffect(Unit) {
-        onTabChange(selectedTabIndex, state.crops[selectedTabIndex].id)
-    }
 
     LaunchedEffect(Unit, selectedIndex) {
         if (selectedIndex != selectedTabIndex) pagerState.animateScrollToPage(selectedIndex)

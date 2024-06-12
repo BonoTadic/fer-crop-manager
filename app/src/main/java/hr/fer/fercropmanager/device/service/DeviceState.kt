@@ -14,7 +14,7 @@ sealed interface DeviceState {
 
     sealed interface Loaded : DeviceState {
         data object Empty : Loaded
-        data class Available(val devices: List<Device>, val isShortcutLoading: Boolean = false) : Loaded
+        data class Available(val devices: List<Device>) : Loaded
     }
 }
 
@@ -22,7 +22,6 @@ data class Device(
     val id: String,
     val name: String,
     val type: String,
-    val isWateringInProgress: Boolean,
 )
 
 data class DeviceValues(
@@ -35,7 +34,6 @@ fun Data.toDevice() = Device(
     id = id.id,
     name = name,
     type = type,
-    isWateringInProgress = false,
 )
 
 fun DeviceDataDto.toDeviceValues() = DeviceValues(

@@ -7,5 +7,5 @@ interface DeviceService {
     fun getDeviceState(): Flow<DeviceState>
     fun getDeviceValues(): Flow<Map<String, DeviceValues>>
     suspend fun refreshDevices()
-    suspend fun startActuation(targetValue: String)
+    suspend fun activateSprinkler(targetValue: String, onStatusChange: (RpcStatus) -> Unit)
 }

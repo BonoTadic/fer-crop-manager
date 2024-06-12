@@ -46,7 +46,7 @@ enum class Plant {
 
 fun AuthState.Success.toUserData() = UserData(name = name, email = email)
 
-fun Device.toCrop(deviceValues: DeviceValues?) = Crop(
+fun Device.toCrop(deviceValues: DeviceValues?, isWateringInProgress: Boolean) = Crop(
     id = id,
     cropName = name,
     soilMoisture = deviceValues?.moisture,

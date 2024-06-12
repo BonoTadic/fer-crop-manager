@@ -95,3 +95,6 @@ data class LatestValuesDto(
     val moisture: Long? = null,
     val isWateringInProgress: Boolean = false,
 )
+
+@Serializable
+data class SprayRpcRequest(val method: String)
