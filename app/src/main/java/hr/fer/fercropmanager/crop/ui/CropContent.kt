@@ -2,10 +2,11 @@ package hr.fer.fercropmanager.crop.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
@@ -45,11 +47,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import hr.fer.fercropmanager.R
+import hr.fer.fercropmanager.crop.ui.plants.Plant
+import hr.fer.fercropmanager.crop.ui.plants.PlantsDialog
+import hr.fer.fercropmanager.crop.ui.utils.FillIndicator
 import hr.fer.fercropmanager.crop.ui.utils.WaterLevelIndicator
 import hr.fer.fercropmanager.crop.ui.utils.formatFloat
-import hr.fer.fercropmanager.crop.ui.utils.painter
+import hr.fer.fercropmanager.crop.ui.plants.painter
 import hr.fer.fercropmanager.crop.usecase.Crop
 import hr.fer.fercropmanager.crop.usecase.CropState
+import hr.fer.fercropmanager.crop.usecase.Wind
 import hr.fer.fercropmanager.snackbar.SnackbarManager
 import hr.fer.fercropmanager.snackbar.ui.SnackbarHost
 import hr.fer.fercropmanager.ui.common.ErrorContent
@@ -135,8 +141,12 @@ fun CropContent(
                 is CropState.Loaded -> LoadedContent(
                     state = cropState,
                     selectedIndex = state.selectedIndex,
+                    isDialogVisible = state.isPlantsDialogVisible,
                     onTabChange = { index, id -> viewModel.onInteraction(CropInteraction.TabChange(index, id)) },
                     onSprinklerClick = { viewModel.onInteraction(CropInteraction.SprinklerClick) },
+                    onPlantsSettingsClick = { viewModel.onInteraction(CropInteraction.PlantsSettingsClick) },
+                    onConfirm = { viewModel.onInteraction(CropInteraction.PlantsDialogConfirm(it)) },
+                    onCancel = { viewModel.onInteraction(CropInteraction.PlantsDialogClose) },
                 )
             }
         }
@@ -147,15 +157,23 @@ fun CropContent(
 private fun LoadedContent(
     state: CropState.Loaded,
     selectedIndex: Int,
+    isDialogVisible: Boolean,
     onTabChange: (Int, String) -> Unit,
     onSprinklerClick: () -> Unit,
+    onPlantsSettingsClick: () -> Unit,
+    onConfirm: (List<Plant>) -> Unit,
+    onCancel: () -> Unit,
 ) {
     when (state) {
         is CropState.Loaded.Available -> CropsTabRowContent(
             state = state,
             selectedIndex = selectedIndex,
+            isDialogVisible = isDialogVisible,
             onTabChange = onTabChange,
             onSprinklerClick = onSprinklerClick,
+            onPlantsSettingsClick = onPlantsSettingsClick,
+            onConfirm = onConfirm,
+            onCancel = onCancel,
         )
         is CropState.Loaded.Empty -> EmptyContent()
         is CropState.Loaded.Loading -> LoadingContent()
@@ -166,14 +184,22 @@ private fun LoadedContent(
 private fun CropsTabRowContent(
     state: CropState.Loaded.Available,
     selectedIndex: Int,
+    isDialogVisible: Boolean,
     onTabChange: (Int, String) -> Unit,
     onSprinklerClick: () -> Unit,
+    onPlantsSettingsClick: () -> Unit,
+    onConfirm: (List<Plant>) -> Unit,
+    onCancel: () -> Unit,
 ) {
     val tabs = state.crops.map { crop -> crop.cropName }
     val pagerState = rememberPagerState(initialPage = selectedIndex, pageCount = { tabs.size })
     val selectedTabIndex by remember { derivedStateOf { pagerState.currentPage } }
 
-    LaunchedEffect(Unit, selectedIndex) {
+    LaunchedEffect(Unit) {
+        onTabChange(selectedTabIndex, state.crops[selectedTabIndex].id)
+    }
+
+    LaunchedEffect(selectedIndex) {
         if (selectedIndex != selectedTabIndex) pagerState.animateScrollToPage(selectedIndex)
     }
 
@@ -181,6 +207,14 @@ private fun CropsTabRowContent(
         if (pagerState.currentPage != selectedIndex) {
             onTabChange(pagerState.currentPage, state.crops[pagerState.currentPage].id)
         }
+    }
+
+    if (isDialogVisible) {
+        PlantsDialog(
+            currentPlants = state.crops[selectedTabIndex].plants,
+            onConfirm = onConfirm,
+            onCancel = onCancel,
+        )
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -217,54 +251,26 @@ private fun CropsTabRowContent(
                 crop = state.crops[pageIndex],
                 isShortcutLoading = state.isShortcutLoading,
                 onSprinklerClick = onSprinklerClick,
+                onPlantsSettingsClick = onPlantsSettingsClick,
             )
         }
     }
 }
 
 @Composable
-private fun CropDetails(crop: Crop, isShortcutLoading: Boolean, onSprinklerClick: () -> Unit) {
+private fun CropDetails(
+    crop: Crop,
+    isShortcutLoading: Boolean,
+    onSprinklerClick: () -> Unit,
+    onPlantsSettingsClick: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
             .padding(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-        ) {
-            Column(modifier = Modifier.padding(vertical = 16.dp)) {
-                Text(
-                    modifier = Modifier.padding(start = 20.dp, bottom = 16.dp),
-                    text = "Plants:",
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                    crop.plants.forEach { plant ->
-                        Surface(
-                            color = MaterialTheme.colorScheme.inversePrimary,
-                            modifier = Modifier.padding(horizontal = 12.dp),
-                            shape = RoundedCornerShape(12.dp),
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                            ) {
-                                Image(
-                                    modifier = Modifier.size(64.dp),
-                                    painter = plant.painter,
-                                    contentDescription = "Plant Icon"
-                                )
-                                Text(text = plant.name)
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        PlantsCard(plants = crop.plants, onPlantsSettingsClick = onPlantsSettingsClick)
         with(crop) {
             if (soilMoisture == null && temperature == null && humidity == null) {
                 Box(
@@ -278,112 +284,214 @@ private fun CropDetails(crop: Crop, isShortcutLoading: Boolean, onSprinklerClick
             }
         }
         crop.soilMoisture?.let { moisture ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-            ) {
-                Box {
-                    val currentValue = moisture.toInt()
-                    if (currentValue < recommendedMinLevel && !crop.isWateringInProgress) {
-                        Box(
-                            modifier = Modifier
-                                .padding(top = 16.dp, end = 12.dp)
-                                .size(32.dp)
-                                .clickable(onClick = onSprinklerClick)
-                                .align(Alignment.TopEnd),
-                        ) {
-                            if (isShortcutLoading) {
-                                CircularProgressIndicator()
-                            } else {
-                                Image(
-                                    modifier = Modifier.size(32.dp),
-                                    painter = painterResource(R.drawable.ic_humidity),
-                                    contentDescription = "Sprinkler Icon",
-                                )
-                            }
-                        }
-                    }
-                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
-                        Text(
-                            modifier = Modifier.padding(bottom = 16.dp),
-                            text = "Soil moisture: ${moisture.toInt()}%",
-                            style = MaterialTheme.typography.titleLarge,
-                        )
-                        WaterLevelIndicator(
-                            currentValue = currentValue,
-                            modifier = Modifier.fillMaxWidth(),
-                            recommendedMin = recommendedMinLevel,
-                            recommendedMax = recommendedMaxLevel,
-                            isWateringInProgress = crop.isWateringInProgress,
-                        )
-                    }
-                }
-            }
+            MoistureCard(
+                moisture = moisture,
+                isWateringInProgress = crop.isWateringInProgress,
+                isShortcutLoading = isShortcutLoading,
+                onSprinklerClick = onSprinklerClick,
+            )
         }
         crop.temperature?.let { temperature ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-            ) {
-                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
-                    Text(
-                        text = "Temperature: ${temperature.formatFloat()}°C",
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                    val fillIndicatorData = FillIndicatorData(
-                        unit = "°C",
-                        current = temperature,
-                        min = 8.0f,
-                        max = 35.0f
-                    )
-                    FillIndicator(fillIndicatorData = fillIndicatorData)
-                }
-            }
+            TemperatureCard(temperature = temperature)
         }
         crop.humidity?.let { humidity ->
-            Card(
+            HumidityCard(humidity)
+        }
+        WindCard(wind = crop.wind)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PlantsCard(plants: List<Plant>, onPlantsSettingsClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Icon(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-            ) {
-                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
-                    Text(
-                        text = "Humidity: ${humidity.formatFloat()}%",
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                    val fillIndicatorData = FillIndicatorData(
-                        unit = "%",
-                        current = humidity,
-                        min = 0.0f,
-                        max = 99.0f
-                    )
-                    FillIndicator(fillIndicatorData = fillIndicatorData)
+                    .padding(top = 16.dp, end = 12.dp)
+                    .size(20.dp)
+                    .clickable(onClick = onPlantsSettingsClick)
+                    .align(Alignment.TopEnd),
+                painter = painterResource(id = R.drawable.ic_adjust),
+                contentDescription = "Adjust Plants Icon",
+            )
+            Column(modifier = Modifier.padding(vertical = 16.dp)) {
+                Text(
+                    modifier = Modifier.padding(start = 20.dp, bottom = 16.dp),
+                    text = "Plants:",
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                FlowRow(
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (plants.isEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "No Plants Icon",
+                            )
+                            Text(text = "No plants added.")
+                        }
+                    } else {
+                        plants.forEach { plant -> PlantItem(plant = plant) }
+                    }
                 }
             }
         }
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+    }
+}
+
+@Composable
+private fun PlantItem(plant: Plant) {
+    Surface(
+        color = MaterialTheme.colorScheme.inversePrimary,
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            Image(
+                modifier = Modifier.size(64.dp),
+                painter = plant.painter,
+                contentDescription = "Plant Icon"
+            )
+            Text(text = plant.name)
+        }
+    }
+}
+
+@Composable
+fun HumidityCard(humidity: Float) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
+            Text(
+                text = "Humidity: ${humidity.formatFloat()}%",
+                style = MaterialTheme.typography.titleLarge,
+            )
+            val fillIndicatorData = FillIndicatorData(
+                unit = "%",
+                current = humidity,
+                min = 0.0f,
+                max = 99.0f
+            )
+            FillIndicator(fillIndicatorData = fillIndicatorData)
+        }
+    }
+}
+
+@Composable
+private fun TemperatureCard(temperature: Float) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
+            Text(
+                text = "Temperature: ${temperature.formatFloat()}°C",
+                style = MaterialTheme.typography.titleLarge,
+            )
+            val fillIndicatorData = FillIndicatorData(
+                unit = "°C",
+                current = temperature,
+                min = 8.0f,
+                max = 35.0f
+            )
+            FillIndicator(fillIndicatorData = fillIndicatorData)
+        }
+    }
+}
+
+@Composable
+private fun MoistureCard(
+    moisture: Float,
+    isWateringInProgress: Boolean,
+    isShortcutLoading: Boolean,
+    onSprinklerClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+    ) {
+        Box {
+            val currentValue = moisture.toInt()
+            if (currentValue < recommendedMinLevel && !isWateringInProgress) {
+                Box(
+                    modifier = Modifier
+                        .padding(top = 16.dp, end = 12.dp)
+                        .size(32.dp)
+                        .clickable(onClick = onSprinklerClick)
+                        .align(Alignment.TopEnd),
+                ) {
+                    if (isShortcutLoading) {
+                        CircularProgressIndicator()
+                    } else {
+                        Image(
+                            modifier = Modifier.size(32.dp),
+                            painter = painterResource(R.drawable.ic_humidity),
+                            contentDescription = "Sprinkler Icon",
+                        )
+                    }
+                }
+            }
             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
                 Text(
-                    text = "Wind direction: ${crop.wind.direction}",
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    text = "Soil moisture: ${moisture.toInt()}%",
                     style = MaterialTheme.typography.titleLarge,
                 )
-                Row(
-                    modifier = Modifier.padding(top = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(painter = painterResource(id = R.drawable.ic_wind), contentDescription = "Wind")
-                    Text(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        text = "${crop.wind.speed.toInt()} km/h",
-                        style = MaterialTheme.typography.headlineLarge,
-                    )
-                }
+                WaterLevelIndicator(
+                    currentValue = currentValue,
+                    modifier = Modifier.fillMaxWidth(),
+                    recommendedMin = recommendedMinLevel,
+                    recommendedMax = recommendedMaxLevel,
+                    isWateringInProgress = isWateringInProgress,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WindCard(wind: Wind) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
+            Text(
+                text = "Wind direction: ${wind.direction}",
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Row(
+                modifier = Modifier.padding(top = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(painter = painterResource(id = R.drawable.ic_wind), contentDescription = "Wind")
+                Text(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    text = "${wind.speed.toInt()} km/h",
+                    style = MaterialTheme.typography.headlineLarge,
+                )
             }
         }
     }
@@ -391,7 +499,7 @@ private fun CropDetails(crop: Crop, isShortcutLoading: Boolean, onSprinklerClick
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CropHeader(name: String, onAlarmsClick: () -> Unit, onSettingsClick: () -> Unit) {
+private fun CropHeader(name: String, onAlarmsClick: () -> Unit, onSettingsClick: () -> Unit) {
     TopAppBar(
         title = { Text(text = "Welcome $name!") },
         actions = {

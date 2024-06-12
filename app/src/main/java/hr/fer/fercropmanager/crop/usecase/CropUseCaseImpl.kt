@@ -2,6 +2,7 @@ package hr.fer.fercropmanager.crop.usecase
 
 import hr.fer.fercropmanager.auth.service.AuthService
 import hr.fer.fercropmanager.auth.service.AuthState
+import hr.fer.fercropmanager.crop.ui.plants.service.PlantsService
 import hr.fer.fercropmanager.device.service.DeviceService
 import hr.fer.fercropmanager.device.service.DeviceState
 import hr.fer.fercropmanager.device.service.RpcStatus
@@ -25,6 +26,7 @@ class CropUseCaseImpl(
     private val authService: AuthService,
     private val deviceService: DeviceService,
     private val snackbarService: SnackbarService,
+    plantsService: PlantsService,
 ) : CropUseCase {
 
     private val coroutineContext = Dispatchers.Main + SupervisorJob()
@@ -37,11 +39,12 @@ class CropUseCaseImpl(
     private val cropsFlow = combine(
         deviceService.getDeviceState().filterIsInstance<DeviceState.Loaded.Available>(),
         deviceService.getDeviceValues(),
+        plantsService.getPlants(),
         isWateringInProgressFlow,
-    ) { deviceState, deviceValues, isWateringInProgress ->
+    ) { deviceState, deviceValues, plantsMap, isWateringInProgress ->
         deviceState.devices
             .filter { it.type == MOISTURE_SENSOR_TYPE || it.type == TEMP_HUMIDITY_SENSOR_TYPE }
-            .map { device -> device.toCrop(deviceValues[device.id], isWateringInProgress) }
+            .map { device -> device.toCrop(deviceValues[device.id], isWateringInProgress, plantsMap) }
     }
 
     override fun getCropStateFlow() = combine(
@@ -93,7 +96,7 @@ class CropUseCaseImpl(
             RpcStatus.Success -> {
                 isShortcutLoadingFlow.value = false
                 isWateringInProgressFlow.value = true
-                snackbarService.notifyUser(message = "Sprinkler activated!!")
+                snackbarService.notifyUser(message = "Sprinkler activated!")
                 delay(SPRINKLER_DURATION)
                 isWateringInProgressFlow.value = false
             }

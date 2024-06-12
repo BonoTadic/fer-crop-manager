@@ -1,4 +1,4 @@
-package hr.fer.fercropmanager.crop.ui
+package hr.fer.fercropmanager.crop.ui.utils
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -24,7 +24,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import hr.fer.fercropmanager.crop.ui.utils.formatFloat
+import hr.fer.fercropmanager.crop.ui.FillIndicatorData
 
 @Composable
 fun FillIndicator(

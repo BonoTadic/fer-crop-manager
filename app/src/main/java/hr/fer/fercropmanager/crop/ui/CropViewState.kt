@@ -9,4 +9,5 @@ data class CropViewState(
     val isSprinkleBottomSheetVisible: Boolean = false,
     val isLedBottomSheetVisible: Boolean = false,
     val isLedEnabled: Boolean = false,
+    val isPlantsDialogVisible: Boolean = false,
 )

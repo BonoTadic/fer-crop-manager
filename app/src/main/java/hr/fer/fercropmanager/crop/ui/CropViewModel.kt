@@ -2,14 +2,20 @@ package hr.fer.fercropmanager.crop.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import hr.fer.fercropmanager.crop.ui.plants.service.PlantsService
+import hr.fer.fercropmanager.crop.ui.utils.combine
 import hr.fer.fercropmanager.crop.usecase.CropUseCase
+import hr.fer.fercropmanager.device.service.DeviceService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class CropViewModel(private val cropUseCase: CropUseCase) : ViewModel() {
+class CropViewModel(
+    private val cropUseCase: CropUseCase,
+    private val deviceService: DeviceService,
+    private val plantsService: PlantsService,
+) : ViewModel() {
 
     private val selectedIndexFlow = MutableStateFlow(0)
 
@@ -18,19 +24,24 @@ class CropViewModel(private val cropUseCase: CropUseCase) : ViewModel() {
     private val isLedBottomSheetVisibleFlow = MutableStateFlow(false)
     private val isLedEnabledFlow = MutableStateFlow(false)
 
+    private val isPlantsDialogVisibleFlow = MutableStateFlow(false)
+
     val state = combine(
         selectedIndexFlow,
         cropUseCase.getCropStateFlow(),
         isSprinklerBottomSheetVisibleFlow,
         isLedBottomSheetVisibleFlow,
         isLedEnabledFlow,
-    ) { selectedIndex, cropState, isSprinklerBottomSheetVisible, isLedBottomSheetVisible, isLedEnabled ->
+        isPlantsDialogVisibleFlow,
+    ) { selectedIndex, cropState, isSprinklerBottomSheetVisible,
+        isLedBottomSheetVisible, isLedEnabled, isPlantsDialogVisible ->
         CropViewState(
             selectedIndex = selectedIndex,
             cropState = cropState,
             isSprinkleBottomSheetVisible = isSprinklerBottomSheetVisible,
             isLedBottomSheetVisible = isLedBottomSheetVisible,
             isLedEnabled = isLedEnabled,
+            isPlantsDialogVisible = isPlantsDialogVisible,
         )
     }.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = CropViewState())
 
@@ -38,6 +49,7 @@ class CropViewModel(private val cropUseCase: CropUseCase) : ViewModel() {
         when (interaction) {
             is CropInteraction.TabChange -> viewModelScope.launch {
                 selectedIndexFlow.value = interaction.index
+                deviceService.setSelectedDeviceId(interaction.id)
             }
             CropInteraction.RetryClick -> viewModelScope.launch { cropUseCase.refreshCrops() }
             CropInteraction.SettingsClick -> {
@@ -62,6 +74,16 @@ class CropViewModel(private val cropUseCase: CropUseCase) : ViewModel() {
             }
             is CropInteraction.OnCheckedChange -> {
                 isLedEnabledFlow.value = interaction.isChecked
+            }
+            CropInteraction.PlantsSettingsClick -> {
+                isPlantsDialogVisibleFlow.value = true
+            }
+            CropInteraction.PlantsDialogClose -> {
+                isPlantsDialogVisibleFlow.value = false
+            }
+            is CropInteraction.PlantsDialogConfirm -> viewModelScope.launch {
+                plantsService.updatePlants(interaction.plants)
+                isPlantsDialogVisibleFlow.value = false
             }
         }
     }

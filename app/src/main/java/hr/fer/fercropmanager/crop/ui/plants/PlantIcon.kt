@@ -1,10 +1,9 @@
-package hr.fer.fercropmanager.crop.ui.utils
+package hr.fer.fercropmanager.crop.ui.plants
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import hr.fer.fercropmanager.R
-import hr.fer.fercropmanager.crop.usecase.Plant
 
 val Plant.painter: Painter
     @Composable

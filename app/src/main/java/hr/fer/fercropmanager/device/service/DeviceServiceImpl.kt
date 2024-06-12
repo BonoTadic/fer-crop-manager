@@ -42,8 +42,14 @@ class DeviceServiceImpl(
 
     override fun getDeviceValues() = deviceValuesPersistence.getCachedDeviceValues()
 
+    override fun getSelectedDeviceId() = devicePersistence.getSelectedDeviceId()
+
     override suspend fun refreshDevices() {
         fetchDevices()
+    }
+
+    override suspend fun setSelectedDeviceId(deviceId: String) {
+        devicePersistence.setSelectedDeviceId(deviceId)
     }
 
     override suspend fun activateSprinkler(onStatusChange: (RpcStatus) -> Unit) {
