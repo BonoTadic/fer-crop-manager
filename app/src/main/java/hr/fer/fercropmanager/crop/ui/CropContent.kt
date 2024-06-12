@@ -65,22 +65,20 @@ fun CropContent(
     onAlarmIconClick: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sprinklerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
 
-    WateringBottomSheet(
-        sheetState = sheetState,
-        isVisible = state.isBottomSheetVisible,
-        targetValue = state.targetValue,
-        onValueChange = { viewModel.onInteraction(CropInteraction.TargetValueChange(it)) },
+    SprinklerBottomSheet(
+        sheetState = sprinklerSheetState,
+        isVisible = state.isSprinkleBottomSheetVisible,
         onConfirm = {
             scope.launch {
-                sheetState.hide()
-            }.invokeOnCompletion { viewModel.onInteraction(CropInteraction.ActivateSprinklers) }
+                sprinklerSheetState.hide()
+            }.invokeOnCompletion { viewModel.onInteraction(CropInteraction.ActivateSprinkler) }
         },
         onCancel = {
             scope.launch {
-                sheetState.hide()
+                sprinklerSheetState.hide()
             }.invokeOnCompletion { viewModel.onInteraction(CropInteraction.HideBottomSheet) }
         },
         onDismissRequest = { viewModel.onInteraction(CropInteraction.HideBottomSheet) },
@@ -107,7 +105,7 @@ fun CropContent(
                     state = cropState,
                     selectedIndex = state.selectedIndex,
                     onTabChange = { index, id -> viewModel.onInteraction(CropInteraction.TabChange(index, id)) },
-                    onStartWateringClick = { viewModel.onInteraction(CropInteraction.StartWateringClick) },
+                    onStartWateringClick = { viewModel.onInteraction(CropInteraction.StartSprinklerClick) },
                 )
             }
         }

@@ -5,6 +5,6 @@ import kotlinx.coroutines.flow.Flow
 interface CropUseCase {
 
     fun getCropStateFlow(): Flow<CropState>
-    suspend fun activateSprinklers(targetValue: String)
+    suspend fun activateSprinkler()
     suspend fun refreshCrops()
 }

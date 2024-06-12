@@ -17,6 +17,7 @@ import kotlinx.serialization.json.Json
 private const val MOISTURE_SENSOR_TYPE = "moisture_sensor"
 private const val TEMP_HUMIDITY_SENSOR_TYPE = "temp_humidity"
 private const val SPRAYER_DEVICE_TYPE = "sprayer"
+private const val LED_DEVICE_TYPE = "led_light"
 
 class DeviceServiceImpl(
     private val deviceApi: DeviceApi,
@@ -45,12 +46,23 @@ class DeviceServiceImpl(
         fetchDevices()
     }
 
-    override suspend fun activateSprinkler(targetValue: String, onStatusChange: (RpcStatus) -> Unit) {
+    override suspend fun activateSprinkler(onStatusChange: (RpcStatus) -> Unit) {
         onStatusChange(RpcStatus.Loading)
         val token = (authService.getAuthState().first() as AuthState.Success).token
         val devices = (devicePersistence.getCachedDeviceState().first() as DeviceState.Loaded.Available).devices
         val spraySensor = devices.first { it.type == SPRAYER_DEVICE_TYPE }
-        deviceApi.activateSprinkler(token, spraySensor.id, targetValue).fold(
+        deviceApi.activateSprinkler(token, spraySensor.id).fold(
+            onSuccess = { onStatusChange(RpcStatus.Success) },
+            onFailure = { onStatusChange(RpcStatus.Error) },
+        )
+    }
+
+    override suspend fun setLedStatus(targetValue: Int, onStatusChange: (RpcStatus) -> Unit) {
+        onStatusChange(RpcStatus.Loading)
+        val token = (authService.getAuthState().first() as AuthState.Success).token
+        val devices = (devicePersistence.getCachedDeviceState().first() as DeviceState.Loaded.Available).devices
+        val ledDevice = devices.first { it.type == LED_DEVICE_TYPE }
+        deviceApi.setLedStatus(token, ledDevice.id, targetValue).fold(
             onSuccess = { onStatusChange(RpcStatus.Success) },
             onFailure = { onStatusChange(RpcStatus.Error) },
         )
@@ -68,6 +80,9 @@ class DeviceServiceImpl(
                         it.type == MOISTURE_SENSOR_TYPE || it.type == TEMP_HUMIDITY_SENSOR_TYPE
                     }
                     sensors.forEach { sensor -> deviceIdNameMap[sensor.id] = sensor.name }
+                    devices.forEach {
+                        println("bono device: $it")
+                    }
                     devicePersistence.updateDeviceState(DeviceState.Loaded.Available(devices))
                     initialiseSocketConnection(token)
                 } else {

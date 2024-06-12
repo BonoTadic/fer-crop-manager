@@ -84,7 +84,7 @@ private fun FillBar(
             drawRoundRect(
                 color = Color.Green,
                 topLeft = Offset(0f, 0f),
-                size = Size(barWidth.toPx() * position, barHeight.toPx()),
+                size = Size((barWidth.toPx() * position).coerceAtMost(barWidth.toPx()), barHeight.toPx()),
                 cornerRadius = CornerRadius(12.dp.toPx(), 12.dp.toPx()),
             )
         }

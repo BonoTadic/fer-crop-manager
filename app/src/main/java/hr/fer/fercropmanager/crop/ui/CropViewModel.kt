@@ -12,16 +12,26 @@ import kotlinx.coroutines.launch
 class CropViewModel(private val cropUseCase: CropUseCase) : ViewModel() {
 
     private val selectedIndexFlow = MutableStateFlow(0)
-    private val isBottomSheetVisibleFlow = MutableStateFlow(false)
-    private val targetValueFlow = MutableStateFlow("")
+
+    private val isSprinklerBottomSheetVisibleFlow = MutableStateFlow(false)
+
+    private val isLedBottomSheetVisibleFlow = MutableStateFlow(false)
+    private val ledTargetValueFlow = MutableStateFlow(false)
 
     val state = combine(
         selectedIndexFlow,
         cropUseCase.getCropStateFlow(),
-        isBottomSheetVisibleFlow,
-        targetValueFlow,
-    ) { selectedIndex, cropState, isBottomSheetVisible, targetValue ->
-        CropViewState(selectedIndex, cropState, isBottomSheetVisible, targetValue)
+        isSprinklerBottomSheetVisibleFlow,
+        isLedBottomSheetVisibleFlow,
+        ledTargetValueFlow,
+    ) { selectedIndex, cropState, isSprinklerBottomSheetVisible, isLedBottomSheetVisible, ledTargetValue ->
+        CropViewState(
+            selectedIndex = selectedIndex,
+            cropState = cropState,
+            isSprinkleBottomSheetVisible = isSprinklerBottomSheetVisible,
+            isLedBottomSheetVisible = isLedBottomSheetVisible,
+            ledTargetValue = ledTargetValue,
+        )
     }.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = CropViewState())
 
     fun onInteraction(interaction: CropInteraction) {
@@ -33,18 +43,13 @@ class CropViewModel(private val cropUseCase: CropUseCase) : ViewModel() {
             CropInteraction.SettingsClick -> {
                 // TODO Implement Settings screen
             }
-            CropInteraction.StartWateringClick -> isBottomSheetVisibleFlow.value = true
+            CropInteraction.StartSprinklerClick -> isSprinklerBottomSheetVisibleFlow.value = true
             CropInteraction.HideBottomSheet -> {
-                isBottomSheetVisibleFlow.value = false
-                targetValueFlow.value = ""
+                isSprinklerBottomSheetVisibleFlow.value = false
             }
-            is CropInteraction.ActivateSprinklers -> {
-                isBottomSheetVisibleFlow.value = false
-                viewModelScope.launch { cropUseCase.activateSprinklers(targetValueFlow.value) }
-                targetValueFlow.value = ""
-            }
-            is CropInteraction.TargetValueChange -> {
-                targetValueFlow.value = interaction.targetValue
+            is CropInteraction.ActivateSprinkler -> {
+                isSprinklerBottomSheetVisibleFlow.value = false
+                viewModelScope.launch { cropUseCase.activateSprinkler() }
             }
         }
     }

@@ -6,6 +6,7 @@ import hr.fer.fercropmanager.crop.usecase.UserData
 data class CropViewState(
     val selectedIndex: Int = 0,
     val cropState: CropState = CropState.Loaded.Loading(UserData("", "")),
-    val isBottomSheetVisible: Boolean = false,
-    val targetValue: String = "",
+    val isSprinkleBottomSheetVisible: Boolean = false,
+    val isLedBottomSheetVisible: Boolean = false,
+    val ledTargetValue: Boolean = false,
 )

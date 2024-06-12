@@ -62,12 +62,9 @@ class CropUseCaseImpl(
         }
     }
 
-    override suspend fun activateSprinklers(targetValue: String) {
+    override suspend fun activateSprinkler() {
         deviceService.activateSprinkler(
-            targetValue = targetValue,
-            onStatusChange = { status ->
-                scope.launch { handleSprinklerRpcResponse(status) }
-            }
+            onStatusChange = { status -> scope.launch { handleSprinklerRpcResponse(status) } }
         )
     }
 
@@ -87,7 +84,7 @@ class CropUseCaseImpl(
             RpcStatus.Success -> {
                 isShortcutLoadingFlow.value = false
                 isWateringInProgressFlow.value = true
-                snackbarService.notifyUser(message = "Watering started successfully!")
+                snackbarService.notifyUser(message = "Sprinkler activated!!")
                 delay(SPRINKLER_DURATION)
                 isWateringInProgressFlow.value = false
             }

@@ -6,32 +6,25 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import hr.fer.fercropmanager.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WateringBottomSheet(
+fun SprinklerBottomSheet(
     sheetState: SheetState,
     isVisible: Boolean,
-    targetValue: String,
-    onValueChange: (String) -> Unit,
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
     onDismissRequest: () -> Unit,
@@ -42,8 +35,6 @@ fun WateringBottomSheet(
             sheetState = sheetState
         ) {
             BottomSheetContent(
-                targetValue = targetValue,
-                onValueChange = onValueChange,
                 onConfirm = onConfirm,
                 onCancel = onCancel,
             )
@@ -53,8 +44,6 @@ fun WateringBottomSheet(
 
 @Composable
 private fun BottomSheetContent(
-    targetValue: String,
-    onValueChange: (String) -> Unit,
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -81,30 +70,19 @@ private fun BottomSheetContent(
         ) {
             Text(
                 modifier = Modifier.padding(bottom = 16.dp),
-                text = "Enter the target percentage value (between 20% and 30%)",
-            )
-            OutlinedTextField(
-                modifier = Modifier.align(alignment = Alignment.CenterHorizontally),
-                value = targetValue,
-                label = {
-                    Text(text = "Target value")
-                },
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.None,
-                    autoCorrectEnabled = true,
-                    keyboardType = KeyboardType.Number,
-                    imeAction = ImeAction.Done
-                ),
-                onValueChange = onValueChange,
+                text = "Your plants need water! Click the Start watering button to activate the sprinklers."
             )
         }
         OutlinedButton(
-            enabled = targetValue.isNotEmpty(),
-            onClick = { onConfirm() },
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onConfirm
         ) {
             Text(text = "Start watering")
         }
-        Button(onClick = onCancel) {
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onCancel,
+        ) {
             Text(text = "Cancel")
         }
     }
