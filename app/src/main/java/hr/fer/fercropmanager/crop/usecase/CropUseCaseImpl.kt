@@ -72,6 +72,15 @@ class CropUseCaseImpl(
         deviceService.refreshDevices()
     }
 
+    override suspend fun setLedStatus(targetValue: Int) {
+        deviceService.setLedStatus(
+            targetValue = targetValue,
+            onStatusChange = {
+                // TODO Handle UI change
+            },
+        )
+    }
+
     private suspend fun handleSprinklerRpcResponse(rpcStatus: RpcStatus) {
         when (rpcStatus) {
             RpcStatus.Loading -> {

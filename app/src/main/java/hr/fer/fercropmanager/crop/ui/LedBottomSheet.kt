@@ -3,6 +3,7 @@ package hr.fer.fercropmanager.crop.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -12,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,9 +24,11 @@ import hr.fer.fercropmanager.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SprinklerBottomSheet(
+fun LedBottomSheet(
     sheetState: SheetState,
     isVisible: Boolean,
+    isChecked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
     onDismissRequest: () -> Unit,
@@ -34,7 +38,9 @@ fun SprinklerBottomSheet(
             onDismissRequest = onDismissRequest,
             sheetState = sheetState,
         ) {
-            BottomSheetContent(
+            LedBottomSheetContent(
+                isChecked = isChecked,
+                onCheckedChange = onCheckedChange,
                 onConfirm = onConfirm,
                 onCancel = onCancel,
             )
@@ -43,7 +49,12 @@ fun SprinklerBottomSheet(
 }
 
 @Composable
-private fun BottomSheetContent(onConfirm: () -> Unit, onCancel: () -> Unit) {
+private fun LedBottomSheetContent(
+    isChecked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -52,23 +63,35 @@ private fun BottomSheetContent(onConfirm: () -> Unit, onCancel: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Crop watering",
+            text = "LED Status",
             style = MaterialTheme.typography.headlineMedium,
         )
         Image(
-            modifier = Modifier.size(128.dp),
-            painter = painterResource(id = R.drawable.ic_irrigation),
+            modifier = Modifier
+                .size(128.dp)
+                .padding(vertical = 16.dp),
+            painter = painterResource(id = R.drawable.ic_lightbulb),
             contentDescription = "Irrigation Icon"
         )
         Text(
-            modifier = Modifier.padding(bottom = 32.dp),
-            text = "Your plants need water! Click the Start watering button to activate the sprinklers."
+            modifier = Modifier.padding(bottom = 24.dp),
+            text = "Update the status of the LED light."
         )
+        Row(
+            modifier = Modifier.padding(bottom = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                modifier = Modifier.weight(1f),
+                text = "LED enabled:",
+            )
+            Switch(checked = isChecked, onCheckedChange = onCheckedChange)
+        }
         OutlinedButton(
             modifier = Modifier.fillMaxWidth(),
             onClick = onConfirm
         ) {
-            Text(text = "Start watering")
+            Text(text = "Update LED state")
         }
         Button(
             modifier = Modifier.fillMaxWidth(),

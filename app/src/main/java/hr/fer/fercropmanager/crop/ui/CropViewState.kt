@@ -8,5 +8,5 @@ data class CropViewState(
     val cropState: CropState = CropState.Loaded.Loading(UserData("", "")),
     val isSprinkleBottomSheetVisible: Boolean = false,
     val isLedBottomSheetVisible: Boolean = false,
-    val ledTargetValue: Boolean = false,
+    val isLedEnabled: Boolean = false,
 )

@@ -16,21 +16,21 @@ class CropViewModel(private val cropUseCase: CropUseCase) : ViewModel() {
     private val isSprinklerBottomSheetVisibleFlow = MutableStateFlow(false)
 
     private val isLedBottomSheetVisibleFlow = MutableStateFlow(false)
-    private val ledTargetValueFlow = MutableStateFlow(false)
+    private val isLedEnabledFlow = MutableStateFlow(false)
 
     val state = combine(
         selectedIndexFlow,
         cropUseCase.getCropStateFlow(),
         isSprinklerBottomSheetVisibleFlow,
         isLedBottomSheetVisibleFlow,
-        ledTargetValueFlow,
-    ) { selectedIndex, cropState, isSprinklerBottomSheetVisible, isLedBottomSheetVisible, ledTargetValue ->
+        isLedEnabledFlow,
+    ) { selectedIndex, cropState, isSprinklerBottomSheetVisible, isLedBottomSheetVisible, isLedEnabled ->
         CropViewState(
             selectedIndex = selectedIndex,
             cropState = cropState,
             isSprinkleBottomSheetVisible = isSprinklerBottomSheetVisible,
             isLedBottomSheetVisible = isLedBottomSheetVisible,
-            ledTargetValue = ledTargetValue,
+            isLedEnabled = isLedEnabled,
         )
     }.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = CropViewState())
 
@@ -43,13 +43,25 @@ class CropViewModel(private val cropUseCase: CropUseCase) : ViewModel() {
             CropInteraction.SettingsClick -> {
                 // TODO Implement Settings screen
             }
-            CropInteraction.StartSprinklerClick -> isSprinklerBottomSheetVisibleFlow.value = true
+            CropInteraction.SprinklerClick -> isSprinklerBottomSheetVisibleFlow.value = true
             CropInteraction.HideBottomSheet -> {
                 isSprinklerBottomSheetVisibleFlow.value = false
+                isLedBottomSheetVisibleFlow.value = false
             }
             is CropInteraction.ActivateSprinkler -> {
                 isSprinklerBottomSheetVisibleFlow.value = false
                 viewModelScope.launch { cropUseCase.activateSprinkler() }
+            }
+            CropInteraction.LightButtonClick -> {
+                isLedBottomSheetVisibleFlow.value = true
+            }
+            CropInteraction.LedStateChangeConfirm -> {
+                isLedBottomSheetVisibleFlow.value = false
+                val targetValue = if (isLedEnabledFlow.value) 1 else 0
+                viewModelScope.launch { cropUseCase.setLedStatus(targetValue) }
+            }
+            is CropInteraction.OnCheckedChange -> {
+                isLedEnabledFlow.value = interaction.isChecked
             }
         }
     }

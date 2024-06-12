@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -66,6 +67,7 @@ fun CropContent(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sprinklerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val ledSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
 
     SprinklerBottomSheet(
@@ -84,6 +86,24 @@ fun CropContent(
         onDismissRequest = { viewModel.onInteraction(CropInteraction.HideBottomSheet) },
     )
 
+    LedBottomSheet(
+        sheetState = ledSheetState,
+        isVisible = state.isLedBottomSheetVisible,
+        isChecked = state.isLedEnabled,
+        onCheckedChange = { viewModel.onInteraction(CropInteraction.OnCheckedChange(it)) },
+        onConfirm = {
+            scope.launch {
+                ledSheetState.hide()
+            }.invokeOnCompletion { viewModel.onInteraction(CropInteraction.LedStateChangeConfirm) }
+        },
+        onCancel = {
+            scope.launch {
+                ledSheetState.hide()
+            }.invokeOnCompletion { viewModel.onInteraction(CropInteraction.HideBottomSheet) }
+        },
+        onDismissRequest = { viewModel.onInteraction(CropInteraction.HideBottomSheet) },
+    )
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarManager = snackbarManager) },
         topBar = {
@@ -92,6 +112,17 @@ fun CropContent(
                 onAlarmsClick = onAlarmIconClick,
                 onSettingsClick = { viewModel.onInteraction(CropInteraction.SettingsClick) },
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { viewModel.onInteraction(CropInteraction.LightButtonClick) }) {
+                Image(
+                    modifier = Modifier
+                        .padding(12.dp)
+                        .size(48.dp),
+                    painter = painterResource(id = R.drawable.ic_lightbulb),
+                    contentDescription = "Light Bulb Icon"
+                )
+            }
         },
     ) { padding ->
         Column(
@@ -105,7 +136,7 @@ fun CropContent(
                     state = cropState,
                     selectedIndex = state.selectedIndex,
                     onTabChange = { index, id -> viewModel.onInteraction(CropInteraction.TabChange(index, id)) },
-                    onStartWateringClick = { viewModel.onInteraction(CropInteraction.StartSprinklerClick) },
+                    onStartWateringClick = { viewModel.onInteraction(CropInteraction.SprinklerClick) },
                 )
             }
         }
