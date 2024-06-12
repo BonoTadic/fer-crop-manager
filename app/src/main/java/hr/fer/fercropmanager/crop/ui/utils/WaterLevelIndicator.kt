@@ -1,16 +1,12 @@
 package hr.fer.fercropmanager.crop.ui.utils
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,20 +17,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.composables.materialcolors.MaterialColors
-import hr.fer.fercropmanager.R
 
 @Composable
 fun WaterLevelIndicator(
     currentValue: Int,
     modifier: Modifier = Modifier,
-    isLoading: Boolean = false,
+    recommendedMin: Int,
+    recommendedMax: Int,
     isWateringInProgress: Boolean = false,
-    recommendedMin: Int = 20,
-    recommendedMax: Int = 30,
-    onStartWateringClick: () -> Unit,
 ) {
     val isInRange = currentValue in recommendedMin..recommendedMax
     val backgroundCircleColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
@@ -108,28 +100,6 @@ fun WaterLevelIndicator(
                 style = MaterialTheme.typography.bodySmall,
                 color = recommendedTextColor,
             )
-        }
-        if (currentValue < recommendedMin && !isWateringInProgress) {
-            FloatingActionButton(
-                modifier = Modifier.align(Alignment.CenterEnd),
-                onClick = { onStartWateringClick() }
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .padding(12.dp)
-                            .size(48.dp),
-                    )
-                } else {
-                    Image(
-                        modifier = Modifier
-                            .padding(12.dp)
-                            .size(48.dp),
-                        painter = painterResource(id = R.drawable.ic_watering),
-                        contentDescription = "Start Watering"
-                    )
-                }
-            }
         }
     }
 }

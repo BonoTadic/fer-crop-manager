@@ -52,17 +52,17 @@ private fun BottomSheetContent(onConfirm: () -> Unit, onCancel: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Crop watering",
+            text = "Enable the sprinkler",
             style = MaterialTheme.typography.headlineMedium,
         )
         Image(
             modifier = Modifier.size(128.dp),
-            painter = painterResource(id = R.drawable.ic_irrigation),
-            contentDescription = "Irrigation Icon"
+            painter = painterResource(id = R.drawable.ic_sprinkler),
+            contentDescription = "Sprinkler Icon"
         )
         Text(
             modifier = Modifier.padding(bottom = 32.dp),
-            text = "Your plants need water! Click the Start watering button to activate the sprinklers."
+            text = "Your plants need water! Click the Start watering button to activate the sprinkler."
         )
         OutlinedButton(
             modifier = Modifier.fillMaxWidth(),

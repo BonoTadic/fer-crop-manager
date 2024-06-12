@@ -117,8 +117,8 @@ fun CropContent(
             FloatingActionButton(onClick = { viewModel.onInteraction(CropInteraction.LightButtonClick) }) {
                 Image(
                     modifier = Modifier
-                        .padding(12.dp)
-                        .size(48.dp),
+                        .padding(16.dp)
+                        .size(40.dp),
                     painter = painterResource(id = R.drawable.ic_lightbulb),
                     contentDescription = "Light Bulb Icon"
                 )
@@ -136,7 +136,7 @@ fun CropContent(
                     state = cropState,
                     selectedIndex = state.selectedIndex,
                     onTabChange = { index, id -> viewModel.onInteraction(CropInteraction.TabChange(index, id)) },
-                    onStartWateringClick = { viewModel.onInteraction(CropInteraction.SprinklerClick) },
+                    onSprinklerClick = { viewModel.onInteraction(CropInteraction.SprinklerClick) },
                 )
             }
         }
@@ -148,14 +148,14 @@ private fun LoadedContent(
     state: CropState.Loaded,
     selectedIndex: Int,
     onTabChange: (Int, String) -> Unit,
-    onStartWateringClick: () -> Unit,
+    onSprinklerClick: () -> Unit,
 ) {
     when (state) {
         is CropState.Loaded.Available -> CropsTabRowContent(
             state = state,
             selectedIndex = selectedIndex,
             onTabChange = onTabChange,
-            onStartWateringClick = onStartWateringClick,
+            onSprinklerClick = onSprinklerClick,
         )
         is CropState.Loaded.Empty -> EmptyContent()
         is CropState.Loaded.Loading -> LoadingContent()
@@ -167,7 +167,7 @@ private fun CropsTabRowContent(
     state: CropState.Loaded.Available,
     selectedIndex: Int,
     onTabChange: (Int, String) -> Unit,
-    onStartWateringClick: () -> Unit,
+    onSprinklerClick: () -> Unit,
 ) {
     val tabs = state.crops.map { crop -> crop.cropName }
     val pagerState = rememberPagerState(initialPage = selectedIndex, pageCount = { tabs.size })
@@ -216,14 +216,14 @@ private fun CropsTabRowContent(
             CropDetails(
                 crop = state.crops[pageIndex],
                 isShortcutLoading = state.isShortcutLoading,
-                onStartWateringClick = onStartWateringClick,
+                onSprinklerClick = onSprinklerClick,
             )
         }
     }
 }
 
 @Composable
-private fun CropDetails(crop: Crop, isShortcutLoading: Boolean, onStartWateringClick: () -> Unit) {
+private fun CropDetails(crop: Crop, isShortcutLoading: Boolean, onSprinklerClick: () -> Unit) {
     Column(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
@@ -283,19 +283,41 @@ private fun CropDetails(crop: Crop, isShortcutLoading: Boolean, onStartWateringC
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp),
             ) {
-                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
-                    Text(
-                        modifier = Modifier.padding(bottom = 16.dp),
-                        text = "Soil moisture: ${moisture.toInt()}%",
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                    WaterLevelIndicator(
-                        currentValue = moisture.toInt(),
-                        modifier = Modifier.fillMaxWidth(),
-                        isLoading = isShortcutLoading,
-                        isWateringInProgress = crop.isWateringInProgress,
-                        onStartWateringClick = onStartWateringClick,
-                    )
+                Box {
+                    val currentValue = moisture.toInt()
+                    if (currentValue < recommendedMinLevel && !crop.isWateringInProgress) {
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 16.dp, end = 12.dp)
+                                .size(32.dp)
+                                .clickable(onClick = onSprinklerClick)
+                                .align(Alignment.TopEnd),
+                        ) {
+                            if (isShortcutLoading) {
+                                CircularProgressIndicator()
+                            } else {
+                                Image(
+                                    modifier = Modifier.size(32.dp),
+                                    painter = painterResource(R.drawable.ic_humidity),
+                                    contentDescription = "Sprinkler Icon",
+                                )
+                            }
+                        }
+                    }
+                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
+                        Text(
+                            modifier = Modifier.padding(bottom = 16.dp),
+                            text = "Soil moisture: ${moisture.toInt()}%",
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                        WaterLevelIndicator(
+                            currentValue = currentValue,
+                            modifier = Modifier.fillMaxWidth(),
+                            recommendedMin = recommendedMinLevel,
+                            recommendedMax = recommendedMaxLevel,
+                            isWateringInProgress = crop.isWateringInProgress,
+                        )
+                    }
                 }
             }
         }
@@ -404,3 +426,6 @@ private fun EmptyContent() {
         )
     }
 }
+
+private const val recommendedMinLevel = 20
+private const val recommendedMaxLevel = 30
