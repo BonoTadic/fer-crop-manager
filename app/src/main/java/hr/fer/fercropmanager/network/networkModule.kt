@@ -18,7 +18,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 
-private const val NETWORK_TIME_OUT = 6000L
+private const val NETWORK_TIME_OUT = 20_000L
 
 val networkModule = module {
     single {

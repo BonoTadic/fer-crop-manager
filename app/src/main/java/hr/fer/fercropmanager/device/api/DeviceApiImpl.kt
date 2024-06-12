@@ -5,10 +5,13 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.http.HttpHeaders
-import kotlinx.coroutines.delay
 
 private const val DEVICES_URL = "api/customer"
+private const val RPC_URL = "api/rpc/oneway"
+private const val SPRAY_RPC_CMD = "spray"
 
 class DeviceApiImpl(private val httpClient: HttpClient) : DeviceApi {
 
@@ -29,10 +32,14 @@ class DeviceApiImpl(private val httpClient: HttpClient) : DeviceApi {
         }
     }
 
-    override suspend fun startActuation(token: String, entityId: String, targetValue: String): Result<Unit> {
+    override suspend fun activateSprinkler(token: String, entityId: String, targetValue: String): Result<Unit> {
         return try {
-            // TODO Implement actuation
-            delay(5000L)
+            httpClient.post("$BASE_URL$RPC_URL/$entityId") {
+                headers {
+                    append(HttpHeaders.Authorization, "Bearer $token")
+                }
+                setBody(SprayRpcRequest(method = SPRAY_RPC_CMD))
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e.fillInStackTrace())

@@ -7,23 +7,21 @@ import hr.fer.fercropmanager.device.api.DeviceDataDto
 import hr.fer.fercropmanager.device.persistence.DevicePersistence
 import hr.fer.fercropmanager.device.persistence.DeviceValuesPersistence
 import hr.fer.fercropmanager.device.websocket.DeviceWebSocket
-import hr.fer.fercropmanager.snackbar.service.SnackbarService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
-private const val DEFAULT_TYPE = "default"
+private const val MOISTURE_SENSOR_TYPE = "moisture_sensor"
+private const val TEMP_HUMIDITY_SENSOR_TYPE = "temp_humidity"
+private const val SPRAYER_DEVICE_TYPE = "sprayer"
 
 class DeviceServiceImpl(
     private val deviceApi: DeviceApi,
     private val deviceWebSocket: DeviceWebSocket,
     private val authService: AuthService,
-    private val snackbarService: SnackbarService,
     private val devicePersistence: DevicePersistence,
     private val deviceValuesPersistence: DeviceValuesPersistence,
 ) : DeviceService {
@@ -32,7 +30,6 @@ class DeviceServiceImpl(
     private val scope = CoroutineScope(coroutineContext)
 
     private val deviceIdNameMap = mutableMapOf<String, String>()
-    private val isShortcutLoadingFlow = MutableStateFlow(false)
 
     private var deviceValuesMap = mapOf<String, DeviceValues>()
 
@@ -40,12 +37,7 @@ class DeviceServiceImpl(
         scope.launch { fetchDevices() }
     }
 
-    override fun getDeviceState() = combine(
-        devicePersistence.getCachedDeviceState(),
-        isShortcutLoadingFlow,
-    ) { deviceState, isShortcutLoading ->
-        deviceState.withUpdatedShortcutLoadingState(isShortcutLoading)
-    }
+    override fun getDeviceState() = devicePersistence.getCachedDeviceState()
 
     override fun getDeviceValues() = deviceValuesPersistence.getCachedDeviceValues()
 
@@ -53,19 +45,14 @@ class DeviceServiceImpl(
         fetchDevices()
     }
 
-    override suspend fun startActuation(targetValue: String) {
-        isShortcutLoadingFlow.value = true
+    override suspend fun activateSprinkler(targetValue: String, onStatusChange: (RpcStatus) -> Unit) {
+        onStatusChange(RpcStatus.Loading)
         val token = (authService.getAuthState().first() as AuthState.Success).token
-        val entityId = devicePersistence.getSelectedDeviceId().first()
-        deviceApi.startActuation(token, entityId, targetValue).fold(
-            onSuccess = {
-                isShortcutLoadingFlow.value = false
-                snackbarService.notifyUser(message = "Watering started successfully!")
-            },
-            onFailure = {
-                isShortcutLoadingFlow.value = false
-                snackbarService.notifyUser(message = "Watering process failed. Please try again.")
-            },
+        val devices = (devicePersistence.getCachedDeviceState().first() as DeviceState.Loaded.Available).devices
+        val spraySensor = devices.first { it.type == SPRAYER_DEVICE_TYPE }
+        deviceApi.activateSprinkler(token, spraySensor.id, targetValue).fold(
+            onSuccess = { onStatusChange(RpcStatus.Success) },
+            onFailure = { onStatusChange(RpcStatus.Error) },
         )
     }
 
@@ -77,7 +64,9 @@ class DeviceServiceImpl(
             onSuccess = { deviceDto ->
                 val devices = deviceDto.data.map { it.toDevice() }
                 if (devices.isNotEmpty()) {
-                    val sensors = devices.filter { it.type != DEFAULT_TYPE }
+                    val sensors = devices.filter {
+                        it.type == MOISTURE_SENSOR_TYPE || it.type == TEMP_HUMIDITY_SENSOR_TYPE
+                    }
                     sensors.forEach { sensor -> deviceIdNameMap[sensor.id] = sensor.name }
                     devicePersistence.updateDeviceState(DeviceState.Loaded.Available(devices))
                     initialiseSocketConnection(token)
@@ -110,10 +99,5 @@ class DeviceServiceImpl(
         } catch (e: Exception) {
             e.fillInStackTrace()
         }
-    }
-
-    private fun DeviceState.withUpdatedShortcutLoadingState(isLoading: Boolean) = when (this) {
-        is DeviceState.Loaded.Available -> this.copy(isShortcutLoading = isLoading)
-        else -> this
     }
 }
