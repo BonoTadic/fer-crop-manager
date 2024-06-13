@@ -121,14 +121,16 @@ fun CropContent(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { viewModel.onInteraction(CropInteraction.LightButtonClick) }) {
-                Image(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .size(40.dp),
-                    painter = painterResource(id = R.drawable.ic_lightbulb),
-                    contentDescription = "Light Bulb Icon"
-                )
+            when (val cropState = state.cropState) {
+                is CropState.Error,
+                is CropState.Loaded.Empty,
+                is CropState.Loaded.Loading -> Unit
+                is CropState.Loaded.Available -> if (cropState.isLedButtonVisible) {
+                    CropFloatingActionButton(
+                        isLoading = cropState.isLedButtonLoading,
+                        onClick = { viewModel.onInteraction(CropInteraction.LightButtonClick) },
+                    )
+                }
             }
         },
     ) { padding ->
@@ -494,6 +496,23 @@ private fun WindCard(wind: Wind) {
                     style = MaterialTheme.typography.headlineLarge,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun CropFloatingActionButton(isLoading: Boolean, onClick: () -> Unit) {
+    FloatingActionButton(onClick = onClick) {
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+        } else {
+            Image(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .size(40.dp),
+                painter = painterResource(id = R.drawable.ic_lightbulb),
+                contentDescription = "Light Bulb Icon"
+            )
         }
     }
 }
