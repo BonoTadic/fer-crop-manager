@@ -42,7 +42,9 @@ class MainActivity : ComponentActivity() {
                         LoginContent(
                             onLoginSuccess = {
                                 navController.navigate("crop") {
-                                    popUpTo("login") { inclusive = true }
+                                    popUpTo("login") {
+                                        inclusive = true
+                                    }
                                     launchSingleTop = true
                                 }
                             },
@@ -87,7 +89,7 @@ class MainActivity : ComponentActivity() {
                             onBackClick = { navController.popBackStack() },
                             onLogout = {
                                 navController.navigate("login") {
-                                    popUpTo("login") {
+                                    popUpTo("crop") {
                                         inclusive = true
                                     }
                                     launchSingleTop = true
