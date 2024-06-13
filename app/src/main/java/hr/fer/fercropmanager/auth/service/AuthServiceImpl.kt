@@ -19,6 +19,10 @@ class AuthServiceImpl(
         )
     }
 
+    override suspend fun logout() {
+        authPersistence.updateAuthState(AuthState.Idle)
+    }
+
     private suspend fun fetchUser(token: String) {
         authApi.getUser(token).fold(
             onSuccess = {

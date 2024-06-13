@@ -8,6 +8,7 @@ import hr.fer.fercropmanager.auth.service.AuthState
 import hr.fer.fercropmanager.snackbar.service.SnackbarService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 
@@ -65,9 +66,16 @@ class AlarmsServiceImpl(
     }
 
     override suspend fun startPollingAlarms() {
-        while (true) {
-            fetchAlarms()
-            delay(POLLING_DELAY)
+        authService.getAuthState().collectLatest { authState ->
+            when (authState) {
+                AuthState.Error,
+                AuthState.Idle,
+                AuthState.Loading -> Unit
+                is AuthState.Success -> while (true) {
+                    fetchAlarms()
+                    delay(POLLING_DELAY)
+                }
+            }
         }
     }
 

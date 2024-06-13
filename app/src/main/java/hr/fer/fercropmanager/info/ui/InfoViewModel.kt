@@ -7,16 +7,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
-class InfoViewModel(authService: AuthService) : ViewModel() {
+class InfoViewModel(private val authService: AuthService) : ViewModel() {
 
     private val isLogoutDialogVisibleFlow = MutableStateFlow(false)
+    private val shouldNavigateFlow = MutableStateFlow(false)
 
     val state = combine(
         authService.getAuthState(),
         isLogoutDialogVisibleFlow,
-    ) { authState, isLogoutDialogVisible ->
-        InfoViewState(authState, isLogoutDialogVisible)
+        shouldNavigateFlow,
+    ) { authState, isLogoutDialogVisible, shouldNavigate ->
+        InfoViewState(authState, isLogoutDialogVisible, shouldNavigate)
     }.stateIn(scope = viewModelScope, started = SharingStarted.Eagerly, initialValue = InfoViewState())
 
     fun onInteraction(interaction: InfoInteraction) {
@@ -26,6 +29,11 @@ class InfoViewModel(authService: AuthService) : ViewModel() {
             }
             InfoInteraction.LogoutClick -> {
                 isLogoutDialogVisibleFlow.value = true
+            }
+            InfoInteraction.LogoutConfirm -> {
+                viewModelScope.launch { authService.logout() }
+                isLogoutDialogVisibleFlow.value = false
+                shouldNavigateFlow.value = true
             }
         }
     }

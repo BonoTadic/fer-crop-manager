@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,6 +41,10 @@ import org.koin.androidx.compose.koinViewModel
 fun InfoContent(viewModel: InfoViewModel = koinViewModel(), onBackClick: () -> Unit, onLogout: () -> Unit) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
 
+    LaunchedEffect(state.shouldNavigate) {
+        if (state.shouldNavigate) onLogout()
+    }
+
     Scaffold(
         topBar = { TopBar(title = "User information", onBackClick = onBackClick) },
     ) { paddingValues ->
@@ -49,14 +54,14 @@ fun InfoContent(viewModel: InfoViewModel = koinViewModel(), onBackClick: () -> U
                 .fillMaxWidth()
         ) {
             when (state.authState) {
-                AuthState.Idle,
+                AuthState.Idle -> Unit
                 AuthState.Loading -> LoadingContent()
                 AuthState.Error -> ErrorContent(onRetry = {})
                 is AuthState.Success -> LoadedContent(
                     authState = state.authState,
                     isLogoutDialogVisible = state.isLogoutDialogVisible,
                     onLogout = { viewModel.onInteraction(InfoInteraction.LogoutClick) },
-                    onLogoutConfirm = onLogout,
+                    onLogoutConfirm = { viewModel.onInteraction(InfoInteraction.LogoutConfirm) },
                     onDialogHide = { viewModel.onInteraction(InfoInteraction.DialogHide) },
                 )
             }

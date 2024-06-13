@@ -80,6 +80,7 @@ class MainActivity : ComponentActivity() {
                         route = "info",
                         enterTransition = { enterTransition() },
                         popExitTransition = { exitTransition() },
+                        exitTransition = { exitTransition() },
                         popEnterTransition = null,
                     ) {
                         InfoContent(
