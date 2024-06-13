@@ -24,6 +24,7 @@ private const val SPRINKLER_DURATION = 10_000L
 
 private const val MOISTURE_SENSOR_TYPE = "moisture_sensor"
 private const val TEMP_HUMIDITY_SENSOR_TYPE = "temp_humidity"
+private const val LED_DEVICE_TYPE = "led_light"
 
 class CropUseCaseImpl(
     private val authService: AuthService,
@@ -38,7 +39,7 @@ class CropUseCaseImpl(
     private val wateringButtonLoadingMapFlow = MutableStateFlow(mapOf<String, Boolean>())
     private val isWateringInProgressMapFlow = MutableStateFlow(mapOf<String, Boolean>())
 
-    private val ledButtonLoadingMapFlow = MutableStateFlow(mapOf<String, Boolean>())
+    private val isLedButtonLoadingFlow = MutableStateFlow(false)
 
     private val selectedDeviceIdFlow = deviceService.getSelectedDeviceId()
         .stateIn(scope = scope, started = SharingStarted.Eagerly, initialValue = "")
@@ -67,14 +68,16 @@ class CropUseCaseImpl(
         authService.getAuthState().filterIsInstance<AuthState.Success>().map { authState -> authState.toUserData() },
         deviceService.getDeviceState(),
         cropsFlow,
-    ) { userData, deviceState, crops ->
+        isLedButtonLoadingFlow,
+    ) { userData, deviceState, crops, isLedButtonLoading ->
         when (deviceState) {
             DeviceState.Initial, DeviceState.Loading -> CropState.Loaded.Loading(userData)
             DeviceState.Error -> CropState.Error(userData)
             DeviceState.Loaded.Empty -> CropState.Loaded.Empty(userData)
             is DeviceState.Loaded.Available -> CropState.Loaded.Available(
                 userData = userData,
-                isLedButtonLoading = false,
+                isLedButtonVisible = deviceState.devices.any { device -> device.type == LED_DEVICE_TYPE },
+                isLedButtonLoading = isLedButtonLoading,
                 crops = crops,
             )
         }
@@ -82,7 +85,7 @@ class CropUseCaseImpl(
 
     override suspend fun activateSprinkler() {
         deviceService.activateSprinkler(
-            onStatusChange = { status -> scope.launch { handleSprinklerRpcResponse(status) } }
+            onStatusChange = { scope.launch { handleSprinklerRpcResponse(it) } }
         )
     }
 
@@ -93,10 +96,24 @@ class CropUseCaseImpl(
     override suspend fun setLedStatus(targetValue: Int) {
         deviceService.setLedStatus(
             targetValue = targetValue,
-            onStatusChange = {
-                // TODO Handle UI change
-            },
+            onStatusChange = { scope.launch { handleLedRcpResponse(it) } },
         )
+    }
+
+    private fun handleLedRcpResponse(rpcStatus: RpcStatus) {
+        when (rpcStatus) {
+            RpcStatus.Loading -> {
+                isLedButtonLoadingFlow.value = true
+            }
+            RpcStatus.Error -> {
+                isLedButtonLoadingFlow.value = false
+                snackbarService.notifyUser(message = "The LED update failed. Please try again.")
+            }
+            RpcStatus.Success -> {
+                isLedButtonLoadingFlow.value = false
+                snackbarService.notifyUser(message = "LED state successfully set!")
+            }
+        }
     }
 
     private suspend fun handleSprinklerRpcResponse(rpcStatus: RpcStatus) {

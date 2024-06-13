@@ -16,6 +16,7 @@ sealed interface CropState {
         data class Empty(override val userData: UserData) : Loaded
         data class Available(
             override val userData: UserData,
+            val isLedButtonVisible: Boolean,
             val isLedButtonLoading: Boolean,
             val crops: List<Crop>,
         ) : Loaded
