@@ -86,9 +86,6 @@ class DeviceServiceImpl(
                         it.type == MOISTURE_SENSOR_TYPE || it.type == TEMP_HUMIDITY_SENSOR_TYPE
                     }
                     sensors.forEach { sensor -> deviceIdNameMap[sensor.id] = sensor.name }
-                    devices.forEach {
-                        println("bono device: $it")
-                    }
                     devicePersistence.updateDeviceState(DeviceState.Loaded.Available(devices))
                     initialiseSocketConnection(token)
                 } else {
