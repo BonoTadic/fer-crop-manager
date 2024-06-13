@@ -20,11 +20,14 @@ class LoginViewModel(private val loginService: LoginService) : ViewModel() {
         usernameStateFlow,
         passwordStateFlow,
     ) { loginState, username, password ->
-        LoginViewState(loginState, username, password)
+        when (loginState) {
+            LoginState.Success -> LoginViewState.LoggedIn
+            else -> LoginViewState.LoggedOut(loginState, username, password)
+        }
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.Lazily,
-        initialValue = LoginViewState(LoginState.Idle, usernameStateFlow.value, passwordStateFlow.value),
+        started = SharingStarted.Eagerly,
+        initialValue = LoginViewState.Loading,
     )
 
     fun onInteraction(interaction: LoginInteraction) {
