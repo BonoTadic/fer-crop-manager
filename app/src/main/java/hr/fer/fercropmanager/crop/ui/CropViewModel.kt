@@ -2,6 +2,7 @@ package hr.fer.fercropmanager.crop.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import hr.fer.fercropmanager.alarms.service.AlarmsService
 import hr.fer.fercropmanager.crop.ui.plants.service.PlantsService
 import hr.fer.fercropmanager.crop.ui.utils.combine
 import hr.fer.fercropmanager.crop.usecase.CropUseCase
@@ -15,6 +16,7 @@ class CropViewModel(
     private val cropUseCase: CropUseCase,
     private val deviceService: DeviceService,
     private val plantsService: PlantsService,
+    private val alarmsService: AlarmsService,
 ) : ViewModel() {
 
     private val selectedIndexFlow = MutableStateFlow(0)
@@ -25,6 +27,10 @@ class CropViewModel(
     private val isLedEnabledFlow = MutableStateFlow(false)
 
     private val isPlantsDialogVisibleFlow = MutableStateFlow(false)
+
+    init {
+        viewModelScope.launch { alarmsService.startPollingAlarms() }
+    }
 
     val state = combine(
         selectedIndexFlow,
@@ -52,9 +58,6 @@ class CropViewModel(
                 deviceService.setSelectedDeviceId(interaction.id)
             }
             CropInteraction.RetryClick -> viewModelScope.launch { cropUseCase.refreshCrops() }
-            CropInteraction.SettingsClick -> {
-                // TODO Implement Settings screen
-            }
             CropInteraction.SprinklerClick -> isSprinklerBottomSheetVisibleFlow.value = true
             CropInteraction.HideBottomSheet -> {
                 isSprinklerBottomSheetVisibleFlow.value = false

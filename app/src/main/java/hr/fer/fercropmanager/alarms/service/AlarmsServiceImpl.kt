@@ -6,14 +6,11 @@ import hr.fer.fercropmanager.alarms.persistence.AlarmsPersistence
 import hr.fer.fercropmanager.auth.service.AuthService
 import hr.fer.fercropmanager.auth.service.AuthState
 import hr.fer.fercropmanager.snackbar.service.SnackbarService
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 
 private const val POLLING_DELAY = 10_000L
 
@@ -23,13 +20,6 @@ class AlarmsServiceImpl(
     private val alarmsPersistence: AlarmsPersistence,
     private val snackbarService: SnackbarService,
 ) : AlarmsService {
-
-    private val coroutineContext = Dispatchers.Main + SupervisorJob()
-    private val scope = CoroutineScope(coroutineContext)
-
-    init {
-        scope.launch { startPollingAlarms() }
-    }
 
     private val isButtonLoadingFlow = MutableStateFlow(false)
 
@@ -75,10 +65,17 @@ class AlarmsServiceImpl(
         )
     }
 
-    private suspend fun startPollingAlarms() {
-        while (true) {
-            fetchAlarms()
-            delay(POLLING_DELAY)
+    override suspend fun startPollingAlarms() {
+        authService.getAuthState().collectLatest { authState ->
+            when (authState) {
+                AuthState.Error,
+                AuthState.Idle,
+                AuthState.Loading -> Unit
+                is AuthState.Success -> while (true) {
+                    fetchAlarms()
+                    delay(POLLING_DELAY)
+                }
+            }
         }
     }
 

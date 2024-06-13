@@ -19,8 +19,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -70,6 +70,7 @@ fun CropContent(
     viewModel: CropViewModel = koinViewModel(),
     snackbarManager: SnackbarManager = koinInject(),
     onAlarmIconClick: () -> Unit,
+    onInfoClick: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sprinklerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -116,7 +117,7 @@ fun CropContent(
             CropHeader(
                 name = state.cropState.userData.name,
                 onAlarmsClick = onAlarmIconClick,
-                onSettingsClick = { viewModel.onInteraction(CropInteraction.SettingsClick) },
+                onInfoClick = onInfoClick,
             )
         },
         floatingActionButton = {
@@ -249,7 +250,7 @@ private fun CropsTabRowContent(
         ) { pageIndex ->
             CropDetails(
                 crop = state.crops[pageIndex],
-                isShortcutLoading = state.isShortcutLoading,
+                isShortcutLoading = state.crops[pageIndex].isWateringButtonLoading,
                 onSprinklerClick = onSprinklerClick,
                 onPlantsSettingsClick = onPlantsSettingsClick,
             )
@@ -499,7 +500,7 @@ private fun WindCard(wind: Wind) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CropHeader(name: String, onAlarmsClick: () -> Unit, onSettingsClick: () -> Unit) {
+private fun CropHeader(name: String, onAlarmsClick: () -> Unit, onInfoClick: () -> Unit) {
     TopAppBar(
         title = { Text(text = "Welcome $name!") },
         actions = {
@@ -510,9 +511,9 @@ private fun CropHeader(name: String, onAlarmsClick: () -> Unit, onSettingsClick:
             )
             Icon(
                 modifier = Modifier
-                    .clickable(onClick = onSettingsClick)
+                    .clickable(onClick = onInfoClick)
                     .padding(horizontal = 12.dp),
-                imageVector = Icons.Default.Settings,
+                imageVector = Icons.Default.Info,
                 contentDescription = "Settings",
             )
         }

@@ -11,6 +11,7 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -19,10 +20,12 @@ import androidx.navigation.navArgument
 import hr.fer.fercropmanager.alarms.ui.details.AlarmDetailsContent
 import hr.fer.fercropmanager.alarms.ui.list.AlarmsListContent
 import hr.fer.fercropmanager.crop.ui.CropContent
+import hr.fer.fercropmanager.info.ui.InfoContent
 import hr.fer.fercropmanager.login.ui.LoginContent
 import hr.fer.fercropmanager.ui.theme.FERCropManagerTheme
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -33,12 +36,7 @@ class MainActivity : ComponentActivity() {
                     composable(
                         route = "login",
                         exitTransition = {
-                            fadeOut(
-                                animationSpec = tween(durationMillis = 300, easing = LinearEasing)
-                            ) + slideOutOfContainer(
-                                animationSpec = tween(durationMillis = 300, easing = EaseOut),
-                                towards = AnimatedContentTransitionScope.SlideDirection.Start
-                            )
+                            exitTransition(towards = AnimatedContentTransitionScope.SlideDirection.Start)
                         }
                     ) {
                         LoginContent(
@@ -51,26 +49,15 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable(route = "crop") {
-                        CropContent(onAlarmIconClick = { navController.navigate("alarms") })
+                        CropContent(
+                            onAlarmIconClick = { navController.navigate("alarms") },
+                            onInfoClick = { navController.navigate("info") },
+                        )
                     }
                     composable(
                         route = "alarms",
-                        enterTransition = {
-                            fadeIn(
-                                animationSpec = tween(durationMillis = 300, easing = LinearEasing)
-                            ) + slideIntoContainer(
-                                animationSpec = tween(300, easing = EaseIn),
-                                towards = AnimatedContentTransitionScope.SlideDirection.Start
-                            )
-                        },
-                        popExitTransition = {
-                            fadeOut(
-                                animationSpec = tween(durationMillis = 300, easing = LinearEasing)
-                            ) + slideOutOfContainer(
-                                animationSpec = tween(300, easing = EaseOut),
-                                towards = AnimatedContentTransitionScope.SlideDirection.End
-                            )
-                        },
+                        enterTransition = { enterTransition() },
+                        popExitTransition = { exitTransition() },
                         popEnterTransition = null,
                     ) {
                         AlarmsListContent(
@@ -81,30 +68,51 @@ class MainActivity : ComponentActivity() {
                     composable(
                         route = "alarm/{alarmId}",
                         arguments = listOf(navArgument("alarmId") { type = NavType.StringType }),
-                        enterTransition = {
-                            fadeIn(
-                                animationSpec = tween(durationMillis = 300, easing = LinearEasing)
-                            ) + slideIntoContainer(
-                                animationSpec = tween(300, easing = EaseIn),
-                                towards = AnimatedContentTransitionScope.SlideDirection.Start
-                            )
-                        },
-                        popExitTransition = {
-                            fadeOut(
-                                animationSpec = tween(durationMillis = 300, easing = LinearEasing)
-                            ) + slideOutOfContainer(
-                                animationSpec = tween(300, easing = EaseOut),
-                                towards = AnimatedContentTransitionScope.SlideDirection.End
-                            )
-                        },
+                        enterTransition = { enterTransition() },
+                        popExitTransition = { exitTransition() },
                     ) { backStackEntry ->
                         AlarmDetailsContent(
                             alarmId = backStackEntry.arguments?.getString("alarmId")!!,
                             onBackClick = { navController.popBackStack() },
                         )
                     }
+                    composable(
+                        route = "info",
+                        enterTransition = { enterTransition() },
+                        popExitTransition = { exitTransition() },
+                        exitTransition = { exitTransition() },
+                        popEnterTransition = null,
+                    ) {
+                        InfoContent(
+                            onBackClick = { navController.popBackStack() },
+                            onLogout = {
+                                navController.navigate("login") {
+                                    popUpTo("login") {
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }
     }
+
+    private fun AnimatedContentTransitionScope<NavBackStackEntry>.enterTransition() = fadeIn(
+        animationSpec = tween(durationMillis = 300, easing = LinearEasing)
+    ) + slideIntoContainer(
+        animationSpec = tween(300, easing = EaseIn),
+        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+    )
+
+    private fun AnimatedContentTransitionScope<NavBackStackEntry>.exitTransition(
+        towards: AnimatedContentTransitionScope.SlideDirection = AnimatedContentTransitionScope.SlideDirection.End,
+    ) = fadeOut(
+        animationSpec = tween(durationMillis = 300, easing = LinearEasing)
+    ) + slideOutOfContainer(
+        animationSpec = tween(300, easing = EaseOut),
+        towards = towards,
+    )
 }

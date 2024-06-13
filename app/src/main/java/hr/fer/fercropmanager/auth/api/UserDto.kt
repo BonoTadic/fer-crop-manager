@@ -12,8 +12,8 @@ data class UserDto(
     val id: Id,
     val name: String,
     val tenantId: TenantId,
-    val firstName: String? = null,
-    val lastName: String? = null,
+    val firstName: String,
+    val lastName: String,
     val phone: String? = null,
 )
 

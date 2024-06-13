@@ -19,6 +19,10 @@ class AuthServiceImpl(
         )
     }
 
+    override suspend fun logout() {
+        authPersistence.updateAuthState(AuthState.Idle)
+    }
+
     private suspend fun fetchUser(token: String) {
         authApi.getUser(token).fold(
             onSuccess = {
@@ -27,7 +31,8 @@ class AuthServiceImpl(
                         token = token,
                         customerId = it.customerId.id,
                         email = it.email,
-                        name = it.name,
+                        firstName = it.firstName,
+                        lastName = it.lastName,
                     )
                 )
             },

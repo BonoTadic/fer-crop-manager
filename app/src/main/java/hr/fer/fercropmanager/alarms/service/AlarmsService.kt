@@ -6,6 +6,7 @@ interface AlarmsService {
 
     fun getAlarmsListState(): Flow<AlarmsListState>
     fun getAlarmState(): Flow<AlarmState>
+    suspend fun startPollingAlarms()
     suspend fun getAlarm(alarmId: String)
     suspend fun acknowledgeAlarm(alarmId: String)
     suspend fun clearAlarm(alarmId: String)

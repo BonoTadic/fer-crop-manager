@@ -5,7 +5,6 @@ import hr.fer.fercropmanager.crop.ui.plants.Plant
 sealed interface CropInteraction {
 
     data object RetryClick : CropInteraction
-    data object SettingsClick : CropInteraction
     data object SprinklerClick : CropInteraction
     data object HideBottomSheet : CropInteraction
     data object ActivateSprinkler : CropInteraction
