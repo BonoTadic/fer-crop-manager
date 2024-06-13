@@ -8,7 +8,8 @@ sealed interface AuthState {
     data class Success(
         val token: String,
         val customerId: String,
-        val name: String,
+        val firstName: String,
+        val lastName: String,
         val email: String,
     ) : AuthState
 }

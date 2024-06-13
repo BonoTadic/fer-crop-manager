@@ -41,7 +41,7 @@ enum class WindDirection {
     North, South, East, West,
 }
 
-fun AuthState.Success.toUserData() = UserData(name = name, email = email)
+fun AuthState.Success.toUserData() = UserData(name = firstName, email = email)
 
 fun Device.toCrop(deviceValues: DeviceValues?, isWateringInProgress: Boolean, plantsMap: Map<String, List<Plant>>) = Crop(
     id = id,

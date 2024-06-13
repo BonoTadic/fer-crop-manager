@@ -20,6 +20,7 @@ import androidx.navigation.navArgument
 import hr.fer.fercropmanager.alarms.ui.details.AlarmDetailsContent
 import hr.fer.fercropmanager.alarms.ui.list.AlarmsListContent
 import hr.fer.fercropmanager.crop.ui.CropContent
+import hr.fer.fercropmanager.info.ui.InfoContent
 import hr.fer.fercropmanager.login.ui.LoginContent
 import hr.fer.fercropmanager.ui.theme.FERCropManagerTheme
 
@@ -48,7 +49,10 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable(route = "crop") {
-                        CropContent(onAlarmIconClick = { navController.navigate("alarms") })
+                        CropContent(
+                            onAlarmIconClick = { navController.navigate("alarms") },
+                            onInfoClick = { navController.navigate("info") },
+                        )
                     }
                     composable(
                         route = "alarms",
@@ -70,6 +74,24 @@ class MainActivity : ComponentActivity() {
                         AlarmDetailsContent(
                             alarmId = backStackEntry.arguments?.getString("alarmId")!!,
                             onBackClick = { navController.popBackStack() },
+                        )
+                    }
+                    composable(
+                        route = "info",
+                        enterTransition = { enterTransition() },
+                        popExitTransition = { exitTransition() },
+                        popEnterTransition = null,
+                    ) {
+                        InfoContent(
+                            onBackClick = { navController.popBackStack() },
+                            onLogout = {
+                                navController.navigate("login") {
+                                    popUpTo("login") {
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            },
                         )
                     }
                 }

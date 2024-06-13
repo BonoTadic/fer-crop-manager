@@ -58,9 +58,6 @@ class CropViewModel(
                 deviceService.setSelectedDeviceId(interaction.id)
             }
             CropInteraction.RetryClick -> viewModelScope.launch { cropUseCase.refreshCrops() }
-            CropInteraction.SettingsClick -> {
-                // TODO Implement Settings screen
-            }
             CropInteraction.SprinklerClick -> isSprinklerBottomSheetVisibleFlow.value = true
             CropInteraction.HideBottomSheet -> {
                 isSprinklerBottomSheetVisibleFlow.value = false

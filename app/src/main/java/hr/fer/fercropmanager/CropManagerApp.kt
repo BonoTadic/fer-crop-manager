@@ -5,6 +5,7 @@ import hr.fer.fercropmanager.alarms.alertsModule
 import hr.fer.fercropmanager.auth.authModule
 import hr.fer.fercropmanager.crop.cropModule
 import hr.fer.fercropmanager.device.deviceModule
+import hr.fer.fercropmanager.info.infoModule
 import hr.fer.fercropmanager.login.loginModule
 import hr.fer.fercropmanager.network.networkModule
 import hr.fer.fercropmanager.snackbar.snackbarModule
@@ -18,7 +19,16 @@ class CropManagerApp : Application() {
         startKoin {
             androidContext(this@CropManagerApp)
             modules(
-                listOf(networkModule, loginModule, cropModule, snackbarModule, deviceModule, authModule, alertsModule)
+                listOf(
+                    networkModule,
+                    loginModule,
+                    cropModule,
+                    snackbarModule,
+                    deviceModule,
+                    authModule,
+                    alertsModule,
+                    infoModule,
+                )
             )
         }
     }

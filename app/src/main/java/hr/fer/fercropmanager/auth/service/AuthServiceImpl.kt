@@ -27,7 +27,8 @@ class AuthServiceImpl(
                         token = token,
                         customerId = it.customerId.id,
                         email = it.email,
-                        name = it.name,
+                        firstName = it.firstName,
+                        lastName = it.lastName,
                     )
                 )
             },
