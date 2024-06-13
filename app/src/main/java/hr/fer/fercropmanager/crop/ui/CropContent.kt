@@ -250,7 +250,7 @@ private fun CropsTabRowContent(
         ) { pageIndex ->
             CropDetails(
                 crop = state.crops[pageIndex],
-                isShortcutLoading = state.isShortcutLoading,
+                isShortcutLoading = state.crops[pageIndex].isWateringButtonLoading,
                 onSprinklerClick = onSprinklerClick,
                 onPlantsSettingsClick = onPlantsSettingsClick,
             )

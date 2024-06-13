@@ -16,8 +16,8 @@ sealed interface CropState {
         data class Empty(override val userData: UserData) : Loaded
         data class Available(
             override val userData: UserData,
+            val isLedButtonLoading: Boolean,
             val crops: List<Crop>,
-            val isShortcutLoading: Boolean = false,
         ) : Loaded
     }
 }
@@ -30,6 +30,7 @@ data class Crop(
     val humidity: Float?,
     val wind: Wind,
     val isWateringInProgress: Boolean,
+    val isWateringButtonLoading: Boolean,
     val plants: List<Plant>,
 )
 
@@ -43,16 +44,19 @@ enum class WindDirection {
 
 fun AuthState.Success.toUserData() = UserData(name = firstName, email = email)
 
-fun Device.toCrop(deviceValues: DeviceValues?, isWateringInProgress: Boolean, plantsMap: Map<String, List<Plant>>) = Crop(
+fun Device.toCrop(
+    deviceValues: DeviceValues?,
+    isWateringInProgress: Boolean,
+    isWateringButtonLoading: Boolean,
+    plantsMap: Map<String, List<Plant>>,
+) = Crop(
     id = id,
     cropName = name,
     soilMoisture = deviceValues?.moisture,
     temperature = deviceValues?.temperature,
     humidity = deviceValues?.humidity,
-    wind = Wind(
-        direction = WindDirection.East,
-        speed = 6f,
-    ),
+    wind = Wind(direction = WindDirection.East, speed = 6f),
     isWateringInProgress = isWateringInProgress,
+    isWateringButtonLoading = isWateringButtonLoading,
     plants = plantsMap[id] ?: emptyList(),
 )
