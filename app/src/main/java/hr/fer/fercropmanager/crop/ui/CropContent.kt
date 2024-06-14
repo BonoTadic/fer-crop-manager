@@ -114,11 +114,13 @@ fun CropContent(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarManager = snackbarManager) },
         topBar = {
-            CropHeader(
-                name = state.cropState.userData.name,
-                onAlarmsClick = onAlarmIconClick,
-                onInfoClick = onInfoClick,
-            )
+            if (state.cropState is CropState.Loaded.Available) {
+                CropHeader(
+                    name = state.cropState.userData.name,
+                    onAlarmsClick = onAlarmIconClick,
+                    onInfoClick = onInfoClick,
+                )
+            }
         },
         floatingActionButton = {
             when (val cropState = state.cropState) {
