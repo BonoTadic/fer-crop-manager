@@ -14,6 +14,7 @@ sealed interface AuthState {
     @Serializable
     data class Success(
         val token: String,
+        val timestamp: Long,
         val customerId: String,
         val firstName: String,
         val lastName: String,
