@@ -48,6 +48,7 @@ class DeviceApiImpl(private val httpClient: HttpClient) : DeviceApi {
     }
 
     override suspend fun setLedStatus(token: String, entityId: String, targetValue: Int): Result<Unit> {
+        // TODO Check why we receive success if operation failed
         return try {
             httpClient.post("$BASE_URL$RPC_URL/$entityId") {
                 headers {
